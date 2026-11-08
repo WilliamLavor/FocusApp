@@ -7,13 +7,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.focusapp.navegation.NavRoutes
+import com.example.focusapp.ui.details.DetailScreen
 import com.example.focusapp.ui.focus.FocusScreen
-
-// Importar os seus ecrãs reais quando estiverem concluídos
-// import com.example.focusapp.ui.focus.FocusScreen
-// import com.example.focusapp.ui.history.HistoryScreen
-// import com.example.focusapp.ui.details.DetailScreen
+import com.example.focusapp.ui.history.HistoryScreen
 
 @Composable
 fun AppNavHost(
@@ -22,7 +18,7 @@ fun AppNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = NavRoutes.Focus.route, // Utiliza a classe selada
+        startDestination = NavRoutes.Focus.route,
         modifier = modifier
     ) {
 
@@ -39,7 +35,6 @@ fun AppNavHost(
         composable(route = NavRoutes.History.route) {
             HistoryScreen(
                 onNavigateToDetails = { sessionId ->
-                    // Utiliza a função para injetar o ID com segurança
                     navController.navigate(NavRoutes.Details.createRoute(sessionId))
                 },
                 onNavigateBack = {
@@ -50,7 +45,7 @@ fun AppNavHost(
 
         // 3. Ecrã de Detalhes
         composable(
-            route = NavRoutes.Details.route, // Fica "details/{sessionId}"
+            route = NavRoutes.Details.route, // "details/{sessionId}"
             arguments = listOf(
                 navArgument("sessionId") { type = NavType.IntType }
             )

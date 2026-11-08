@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -58,9 +57,6 @@ dependencies {
 
     // Ícones (versão gerenciada pelo BOM)
     implementation("androidx.compose.material:material-icons-extended")
-
-    // Serialização JSON
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     // Testes e debug
     testImplementation(libs.junit)

@@ -1,5 +1,9 @@
 package com.example.focusapp.ui.focus
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,14 +26,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.example.focusapp.sensor.MedidorRuido
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +50,59 @@ fun FocusScreen(
     // Estados locais temporários para controlar a UI (State Hoisting virá com o ViewModel depois)
     var materia by remember { mutableStateOf("") }
     var isFocando by remember { mutableStateOf(false) }
+
+    // ---------- Microfone: permissão ----------
+    val context = LocalContext.current
+
+    // Começa com o resultado da checagem: já temos a permissão ou não?
+    var temPermissao by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                    PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    // Abre a janelinha do Android pedindo a permissão e guarda a resposta
+    val pedirPermissao = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedida ->
+        temPermissao = concedida
+    }
+
+    // Ao abrir a tela, pede a permissão se ainda não tiver
+    LaunchedEffect(Unit) {
+        if (!temPermissao) {
+            pedirPermissao.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    // ---------- Microfone: leitura do ruído ----------
+    var ruidoDb by remember { mutableStateOf(0) }
+
+    // Roda quando a tela abre (e de novo se a permissão mudar).
+    // Quando a tela sai da composição, o loop é cancelado e o "finally" libera o microfone.
+    LaunchedEffect(temPermissao) {
+        if (temPermissao) {
+            val medidor = MedidorRuido()
+            medidor.iniciar()
+            try {
+                while (true) {
+                    // Leitura em outra thread (IO) para não travar a tela
+                    ruidoDb = withContext(Dispatchers.IO) { medidor.lerDb() }
+                    delay(500) // atualiza duas vezes por segundo
+                }
+            } finally {
+                medidor.parar()
+            }
+        }
+    }
+
+    // Texto que descreve o nível de ruído
+    val descricaoRuido = when {
+        ruidoDb < 40 -> "Silencioso"
+        ruidoDb < 60 -> "Moderado"
+        else -> "Barulhento"
+    }
 
     Scaffold(
         topBar = {
@@ -113,10 +177,22 @@ fun FocusScreen(
                     HorizontalDivider()
 
                     // Leitura do Microfone
-                    Text(
-                        text = "Ruído Atual: 34 dB (Silencioso)",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    if (temPermissao) {
+                        Text(
+                            text = "Ruído Atual: $ruidoDb dB ($descricaoRuido)",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else {
+                        Text(
+                            text = "Microfone sem permissão",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        OutlinedButton(
+                            onClick = { pedirPermissao.launch(Manifest.permission.RECORD_AUDIO) }
+                        ) {
+                            Text("Permitir microfone")
+                        }
+                    }
                 }
             }
 
