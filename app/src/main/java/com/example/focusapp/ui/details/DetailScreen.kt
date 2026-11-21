@@ -149,6 +149,14 @@ fun DetailScreen(
                         Text("Duração: ${atual.duracaoMinutos} minutos")
 
                         Text("Média acústica: ${atual.mediaDb} dB")
+
+                        if (atual.avaliacao > 0) {
+                            Text("Avaliação: ${atual.avaliacao}/5")
+                        }
+
+                        if (atual.fatores.isNotBlank()) {
+                            Text("Influenciou: ${atual.fatores.replace(",", ", ")}")
+                        }
                     }
                 }
 

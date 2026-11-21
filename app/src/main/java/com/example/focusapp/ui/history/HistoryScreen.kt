@@ -164,6 +164,12 @@ private fun SessionCard(
                 Text(
                     text = "${sessao.duracaoMinutos} min • Média: ${sessao.mediaDb} dB"
                 )
+
+                if (sessao.avaliacao > 0) {
+                    Text(
+                        text = "Avaliação: ${sessao.avaliacao}/5"
+                    )
+                }
             }
 
             IconButton(onClick = onDelete) {

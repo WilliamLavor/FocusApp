@@ -59,6 +59,13 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     var sessaoConcluida by mutableStateOf(false)
         private set
 
+    // sessão que acabou e ainda espera a avaliação para ser salva
+    var sessaoPendente by mutableStateOf<FocusSession?>(null)
+        private set
+
+    val aguardandoAvaliacao: Boolean
+        get() = sessaoPendente != null
+
     val acelerometroExiste: Boolean = sensorVirado.existe
 
     // controle interno
@@ -107,6 +114,33 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     // encerra e salva como abandonada
     fun encerrarSessao() {
         if (focando) abandonarSessao()
+    }
+
+    // salva a sessão pendente com a nota e começa o descanso
+    fun salvarAvaliacao(estrelas: Int, fatores: List<String>) {
+        val pendente = sessaoPendente ?: return
+
+        sessaoPendente = null
+        salvar(
+            pendente.copy(
+                avaliacao = estrelas.coerceIn(0, 5),
+                fatores = fatores.joinToString(",")
+            )
+        )
+
+        if (descansoMinutos > 0) iniciarDescanso()
+    }
+
+    fun pularAvaliacao() {
+        salvarAvaliacao(0, emptyList())
+    }
+
+    // app saiu de cena na avaliação: salva sem nota e sem descanso
+    fun salvarPendenteSemAvaliacao() {
+        val pendente = sessaoPendente ?: return
+
+        sessaoPendente = null
+        salvar(pendente)
     }
 
     fun definirPermissaoMicrofone(concedida: Boolean) {
@@ -228,11 +262,10 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
         encerrarEstado()
         sessaoConcluida = true
-        salvar(sessao)
         alerta.tocar()
 
-        // descanso depois do foco, se tiver
-        if (descansoMinutos > 0) iniciarDescanso()
+        // só salva depois da avaliação; o descanso começa junto
+        sessaoPendente = sessao
     }
 
     private fun abandonarSessao() {
