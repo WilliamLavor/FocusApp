@@ -222,7 +222,7 @@ O aplicativo funciona localmente e não depende de conexão com a internet.
 5. Confira a contagem regressiva e a medição de ruído.
 6. Aguarde o término da sessão para verificar o registro no histórico.
 
-Para testar rapidamente o término do cronômetro, pode-se alterar temporariamente a constante `DURACAO_SESSAO_SEGUNDOS` no `FocusScreen.kt`.
+Para testar rapidamente o término do cronômetro, escolha 1 minuto de foco na tela **Nova sessão**.
 
 ---
 

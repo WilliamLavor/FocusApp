@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,13 +22,13 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FocusScreen(
+    viewModel: FocusViewModel,
     onNavigateToHistory: () -> Unit,
-    viewModel: FocusViewModel = viewModel()
+    onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as ComponentActivity
@@ -115,7 +116,15 @@ fun FocusScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("FocusApp") },
+                    title = { Text("Timer") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Voltar"
+                            )
+                        }
+                    },
                     actions = {
                         IconButton(onClick = onNavigateToHistory) {
                             Icon(
@@ -141,15 +150,9 @@ fun FocusScreen(
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
 
-                OutlinedTextField(
-                    value = viewModel.materia,
-                    onValueChange = viewModel::alterarMateria,
-                    label = { Text("Matéria") },
-                    placeholder = {
-                        Text("Ex: Matemática Discreta")
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                Text(
+                    text = viewModel.materia.ifBlank { "Estudo livre" },
+                    style = MaterialTheme.typography.titleLarge
                 )
 
                 ElevatedCard(
@@ -165,18 +168,32 @@ fun FocusScreen(
                     ) {
 
                         Text(
-                            text = "00 : 25 : 00",
+                            text = formatarTempo(viewModel.tempoRestanteSegundos),
                             style = MaterialTheme.typography.displayMedium,
                             fontWeight = FontWeight.Bold
                         )
 
-                        Text(
-                            text = "AGUARDANDO CELULAR",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                        if (viewModel.emDescanso) {
+                            Text(
+                                text = "DESCANSO",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
 
-                        Text("Vire a tela para baixo na mesa")
+                            Text("Aproveite para descansar. Quando o descanso acabar, vire o celular para o próximo foco.")
+
+                            OutlinedButton(onClick = viewModel::pularDescanso) {
+                                Text("Pular descanso")
+                            }
+                        } else {
+                            Text(
+                                text = "AGUARDANDO CELULAR",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+
+                            Text("Vire a tela para baixo na mesa")
+                        }
 
                         if (!viewModel.acelerometroExiste) {
                             Text(
@@ -204,17 +221,10 @@ fun FocusScreen(
                 }
                 if (viewModel.sessaoConcluida) {
                     Text(
-                        text = "Sessão concluída! Parabéns pelos 25 minutos de foco.",
+                        text = "Sessão concluída! Parabéns pelos ${viewModel.focoMinutos} minutos de foco.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
-                }
-
-                OutlinedButton(
-                    onClick = viewModel::limparMateria,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Limpar matéria")
                 }
             }
         }
@@ -230,15 +240,7 @@ private fun TelaFocoAtiva(
 ) {
     val corFundo = MaterialTheme.colorScheme.onBackground
     val corTexto = MaterialTheme.colorScheme.background
-    val horas = tempoRestanteSegundos / 3600
-    val minutos = (tempoRestanteSegundos % 3600) / 60
-    val segundos = tempoRestanteSegundos % 60
-
-    val tempoFormatado = "%02d : %02d : %02d".format(
-        horas,
-        minutos,
-        segundos
-    )
+    val tempoFormatado = formatarTempo(tempoRestanteSegundos)
 
     Column(
         modifier = Modifier
@@ -283,4 +285,13 @@ private fun TelaFocoAtiva(
             color = corTexto
         )
     }
+}
+
+// Converte segundos em "HH : MM : SS"
+private fun formatarTempo(totalSegundos: Int): String {
+    val horas = totalSegundos / 3600
+    val minutos = (totalSegundos % 3600) / 60
+    val segundos = totalSegundos % 60
+
+    return "%02d : %02d : %02d".format(horas, minutos, segundos)
 }

@@ -2,6 +2,7 @@ package com.example.focusapp.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -9,24 +10,46 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.focusapp.ui.details.DetailScreen
 import com.example.focusapp.ui.focus.FocusScreen
+import com.example.focusapp.ui.focus.FocusViewModel
 import com.example.focusapp.ui.history.HistoryScreen
+import com.example.focusapp.ui.sessao.NovaSessaoScreen
 
 @Composable
 fun AppNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    // ViewModel único, compartilhado entre "Nova sessão" e o timer (escopo da Activity).
+    val focusViewModel: FocusViewModel = viewModel()
+
     NavHost(
         navController = navController,
-        startDestination = NavRoutes.Focus.route,
+        startDestination = NavRoutes.NovaSessao.route,
         modifier = modifier
     ) {
 
-        // 1. Tela de Foco
-        composable(route = NavRoutes.Focus.route) {
-            FocusScreen(
+        // 0. Tela de Nova sessão (matéria e minutos de foco/descanso)
+        composable(route = NavRoutes.NovaSessao.route) {
+            NovaSessaoScreen(
+                viewModel = focusViewModel,
+                onIniciar = {
+                    navController.navigate(NavRoutes.Focus.route)
+                },
                 onNavigateToHistory = {
                     navController.navigate(NavRoutes.History.route)
+                }
+            )
+        }
+
+        // 1. Tela de Foco (timer)
+        composable(route = NavRoutes.Focus.route) {
+            FocusScreen(
+                viewModel = focusViewModel,
+                onNavigateToHistory = {
+                    navController.navigate(NavRoutes.History.route)
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
