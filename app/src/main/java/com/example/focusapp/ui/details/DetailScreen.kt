@@ -4,13 +4,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.focusapp.data.AppDatabase
+import com.example.focusapp.data.FocusSession
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -18,18 +22,62 @@ fun DetailScreen(
     sessionId: Int,
     onNavigateBack: () -> Unit
 ) {
-    var materia by remember { mutableStateOf("Matemática Discreta") }
-    var notas by remember { mutableStateOf("Revisão de indução matemática e listas") }
+
+    val context = LocalContext.current
+
+    val dao = remember {
+        AppDatabase.getDatabase(context).focusDao()
+    }
+
+    val scope = rememberCoroutineScope()
+
+    // Sessão encontrada no banco
+    var sessao by remember {
+        mutableStateOf<FocusSession?>(null)
+    }
+
+    var carregando by remember {
+        mutableStateOf(true)
+    }
+
+    // Campos editáveis
+    var materia by remember {
+        mutableStateOf("")
+    }
+
+    var notas by remember {
+        mutableStateOf("")
+    }
+
+    // Busca a sessão pelo ID
+    LaunchedEffect(sessionId) {
+
+        val encontrada = dao.buscarPorId(sessionId)
+
+        sessao = encontrada
+
+        materia = encontrada?.materia ?: ""
+        notas = encontrada?.notas ?: ""
+
+        carregando = false
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Detalhes da Sessão") },
+                title = {
+                    Text("Detalhes da Sessão")
+                },
+
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Voltar"
+                        )
                     }
                 },
+
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -37,50 +85,130 @@ fun DetailScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Sessão ID: #$sessionId", style = MaterialTheme.typography.titleMedium)
-                    Text("Data: 07/11/2026 às 10:30")
-                    Text("Status: CONCLUÍDO")
-                    Text("Média acústica: 38 dB")
+
+        if (carregando) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+
+        } else if (sessao == null) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Sessão não encontrada.")
+            }
+
+        } else {
+
+            val atual = sessao!!
+
+            val dataFormatada = SimpleDateFormat(
+                "dd/MM/yyyy HH:mm",
+                Locale.getDefault()
+            ).format(Date(atual.data))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp),
+
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+
+                // Informações da sessão
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+
+                        Text(
+                            "Sessão ID: #${atual.id}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Text("Data: $dataFormatada")
+
+                        Text("Status: ${atual.status}")
+
+                        Text("Duração: ${atual.duracaoMinutos} minutos")
+
+                        Text("Média acústica: ${atual.mediaDb} dB")
+                    }
                 }
-            }
 
-            OutlinedTextField(
-                value = materia,
-                onValueChange = { materia = it },
-                label = { Text("Nome da Matéria") },
-                modifier = Modifier.fillMaxWidth()
-            )
+                // Editar matéria
+                OutlinedTextField(
+                    value = materia,
+                    onValueChange = { materia = it },
+                    label = {
+                        Text("Nome da Matéria")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            OutlinedTextField(
-                value = notas,
-                onValueChange = { notas = it },
-                label = { Text("Anotações do Estudo") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 4
-            )
+                // Editar anotações
+                OutlinedTextField(
+                    value = notas,
+                    onValueChange = { notas = it },
+                    label = {
+                        Text("Anotações do Estudo")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4
+                )
 
-            // Por enquanto os botões só voltam para a tela anterior
-            Button(
-                onClick = onNavigateBack,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Guardar Alterações")
-            }
+                // Salvar alterações
+                Button(
+                    onClick = {
+                        scope.launch {
 
-            TextButton(
-                onClick = onNavigateBack,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Eliminar Registo")
+                            dao.atualizar(
+                                atual.copy(
+                                    materia = materia.trim(),
+                                    notas = notas
+                                )
+                            )
+
+                            onNavigateBack()
+                        }
+                    },
+
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Guardar Alterações")
+                }
+
+                // Excluir sessão
+                TextButton(
+                    onClick = {
+                        scope.launch {
+
+                            dao.excluir(atual)
+
+                            onNavigateBack()
+                        }
+                    },
+
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Eliminar Registo")
+                }
             }
         }
     }

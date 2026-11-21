@@ -7,33 +7,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -43,31 +21,60 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.lifecycleScope
+import com.example.focusapp.data.AppDatabase
+import com.example.focusapp.data.FocusSession
 import com.example.focusapp.sensor.MedidorRuido
 import com.example.focusapp.sensor.SensorProximidade
-import com.example.focusapp.sensor.SensorVirado
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FocusScreen(
     onNavigateToHistory: () -> Unit
 ) {
-    // Estados locais temporários para controlar a UI (State Hoisting virá com o ViewModel depois)
     var materia by remember { mutableStateOf("") }
-    var focando by remember { mutableStateOf(false) }       // true = celular virado para baixo
-    var appVisivel by remember { mutableStateOf(true) }     // false = app foi para segundo plano
+    var focando by remember { mutableStateOf(false) }
+    var appVisivel by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
     val activity = context as ComponentActivity
 
-    // ---------- Microfone: permissão ----------
+    // Acesso ao banco
+    val banco = remember {
+        AppDatabase.getDatabase(context)
+    }
+
+    val dao = remember {
+        banco.focusDao()
+    }
+
+    // Dados da sessão atual
+    var inicioSessao by remember { mutableLongStateOf(0L) }
+    var somaRuido by remember { mutableIntStateOf(0) }
+    var quantidadeMedicoes by remember { mutableIntStateOf(0) }
+
+    // Inicia uma sessão apenas uma vez
+    fun iniciarFoco() {
+        if (!focando) {
+            inicioSessao = System.currentTimeMillis()
+            somaRuido = 0
+            quantidadeMedicoes = 0
+            focando = true
+        }
+    }
+
+    // Permissão do microfone
     var temPermissao by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
-                    PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
         )
     }
 
@@ -83,85 +90,148 @@ fun FocusScreen(
         }
     }
 
-    // ---------- Microfone: leitura do ruído ----------
-    var ruidoDb by remember { mutableStateOf(0) }
+    // Medição do ruído durante o foco
+    var ruidoDb by remember { mutableIntStateOf(0) }
 
-    // Só mede quando tem permissão E o app está visível.
-    // Se uma das duas coisas mudar, o loop antigo é cancelado e o "finally" libera o microfone.
-    LaunchedEffect(temPermissao, appVisivel) {
-        if (temPermissao && appVisivel) {
+    LaunchedEffect(temPermissao, appVisivel, focando) {
+
+        if (temPermissao && appVisivel && focando) {
+
             val medidor = MedidorRuido()
             medidor.iniciar()
+
             try {
                 while (true) {
-                    ruidoDb = withContext(Dispatchers.IO) { medidor.lerDb() }
+
+                    val leitura = withContext(Dispatchers.IO) {
+                        medidor.lerDb()
+                    }
+
+                    ruidoDb = leitura
+                    somaRuido += leitura
+                    quantidadeMedicoes++
+
                     delay(500)
                 }
+
             } finally {
                 medidor.parar()
             }
         }
     }
 
-    // ---------- Sensor de proximidade + ciclo de vida ----------
-    val sensorProximidade = remember { SensorProximidade(context) }
-    val sensorVirado = remember { SensorVirado(context) } // acelerômetro: funciona mesmo com capinha alta
+    // Sensores
+    val sensorProximidade = remember {
+        SensorProximidade(context)
+    }
 
+
+    // Ciclo de vida do aplicativo
     DisposableEffect(activity) {
-        // O sensor só INICIA o foco: depois que começou, desvirar o celular não encerra
-        sensorProximidade.aoMudar = { perto -> if (perto) focando = true }
-        sensorVirado.aoMudar = { virado -> if (virado) focando = true }
 
-        // Observa o ciclo de vida da Activity
+        sensorProximidade.aoMudar = { perto ->
+            if (perto) iniciarFoco()
+        }
+
+
+
         val observador = LifecycleEventObserver { _, evento ->
+
             if (evento == Lifecycle.Event.ON_START) {
                 appVisivel = true
+
                 sensorProximidade.iniciar()
-                sensorVirado.iniciar()
+
             }
+
             if (evento == Lifecycle.Event.ON_STOP) {
+
                 appVisivel = false
+
                 sensorProximidade.parar()
-                sensorVirado.parar()
-                focando = false // saiu do app durante o foco: a sessão foi abandonada
+
+
+                // Se havia uma sessão ativa, salvamos como abandonada
+                if (inicioSessao > 0L) {
+
+                    val agora = System.currentTimeMillis()
+
+                    val duracao = (
+                            (agora - inicioSessao) / 60000.0
+                            ).roundToInt().coerceAtLeast(1)
+
+                    val media = if (quantidadeMedicoes > 0) {
+                        somaRuido / quantidadeMedicoes
+                    } else {
+                        0
+                    }
+
+                    val sessao = FocusSession(
+                        materia = materia.ifBlank { "Estudo livre" },
+                        data = inicioSessao,
+                        duracaoMinutos = duracao,
+                        status = "ABANDONADO",
+                        mediaDb = media
+                    )
+
+                    activity.lifecycleScope.launch {
+                        dao.inserir(sessao)
+                    }
+
+                    // Impede que a mesma sessão seja salva novamente
+                    inicioSessao = 0L
+                }
+
+                focando = false
             }
         }
+
         activity.lifecycle.addObserver(observador)
 
         onDispose {
             activity.lifecycle.removeObserver(observador)
+
             sensorProximidade.parar()
-            sensorVirado.parar()
+
         }
     }
 
-    // ---------- Regras durante o foco ----------
-    // 1) O botão voltar não faz nada
+    // Impede o botão voltar durante o foco
     BackHandler(enabled = focando) { }
 
-    // 2) A tela não apaga sozinha (se apagasse, o app sairia de cena)
+    // Mantém a tela ligada durante o foco
     val view = LocalView.current
+
     DisposableEffect(focando) {
         view.keepScreenOn = focando
-        onDispose { view.keepScreenOn = false }
+
+        onDispose {
+            view.keepScreenOn = false
+        }
     }
 
-    // ---------- Textos ----------
     val descricaoRuido = when {
         ruidoDb < 40 -> "Silencioso"
         ruidoDb < 60 -> "Moderado"
         else -> "Barulhento"
     }
-    val textoRuido = if (temPermissao) {
-        "Ruído Atual: $ruidoDb dB ($descricaoRuido)"
-    } else {
-        "Microfone sem permissão"
+
+    val textoRuido = when {
+        !temPermissao -> "Microfone sem permissão"
+        !focando -> "O ruído será medido durante o foco"
+        else -> "Ruído Atual: $ruidoDb dB ($descricaoRuido)"
     }
 
-    // ---------- Qual tela mostrar ----------
+    // Exibe a tela adequada
     if (focando) {
-        TelaFocoAtiva(materia = materia, textoRuido = textoRuido)
+
+        TelaFocoAtiva(
+            materia = materia,
+            textoRuido = textoRuido
+        )
+
     } else {
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -191,21 +261,21 @@ fun FocusScreen(
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
 
-                // 1. Campo da Matéria
                 OutlinedTextField(
                     value = materia,
                     onValueChange = { materia = it },
                     label = { Text("Matéria") },
-                    placeholder = { Text("Ex: Matemática Discreta") },
+                    placeholder = {
+                        Text("Ex: Matemática Discreta")
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
-                // 2. Card Central (estado de espera)
                 ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
+
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -213,6 +283,7 @@ fun FocusScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+
                         Text(
                             text = "00 : 25 : 00",
                             style = MaterialTheme.typography.displayMedium,
@@ -225,29 +296,26 @@ fun FocusScreen(
                             color = MaterialTheme.colorScheme.secondary
                         )
 
-                        Text(
-                            text = "Vire a tela para baixo na mesa",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Text("Vire a tela para baixo na mesa")
 
-                        if (!sensorProximidade.existe && !sensorVirado.existe) {
+                        if (!sensorProximidade.existe) {
                             Text(
-                                text = "Este aparelho não tem sensores para detectar o celular virado",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "Este aparelho não possui sensor de proximidade",
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
 
                         HorizontalDivider()
 
-                        Text(
-                            text = textoRuido,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Text(textoRuido)
 
                         if (!temPermissao) {
                             OutlinedButton(
-                                onClick = { pedirPermissao.launch(Manifest.permission.RECORD_AUDIO) }
+                                onClick = {
+                                    pedirPermissao.launch(
+                                        Manifest.permission.RECORD_AUDIO
+                                    )
+                                }
                             ) {
                                 Text("Permitir microfone")
                             }
@@ -255,7 +323,6 @@ fun FocusScreen(
                     }
                 }
 
-                // 3. Controle manual
                 OutlinedButton(
                     onClick = { materia = "" },
                     modifier = Modifier.fillMaxWidth()
@@ -267,13 +334,12 @@ fun FocusScreen(
     }
 }
 
-// Tela de foco: cores invertidas e nenhum botão (não há nada para tocar)
+// Tela de foco
 @Composable
 private fun TelaFocoAtiva(
     materia: String,
     textoRuido: String
 ) {
-    // Inversão: o fundo usa a cor que seria do texto, e o texto usa a cor que seria do fundo
     val corFundo = MaterialTheme.colorScheme.onBackground
     val corTexto = MaterialTheme.colorScheme.background
 
@@ -283,8 +349,12 @@ private fun TelaFocoAtiva(
             .background(corFundo)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+        verticalArrangement = Arrangement.spacedBy(
+            16.dp,
+            Alignment.CenterVertically
+        )
     ) {
+
         if (materia.isNotBlank()) {
             Text(
                 text = materia,
@@ -308,13 +378,11 @@ private fun TelaFocoAtiva(
 
         Text(
             text = "Foco ativo. Não saia do aplicativo!",
-            style = MaterialTheme.typography.bodyMedium,
             color = corTexto
         )
 
         Text(
             text = textoRuido,
-            style = MaterialTheme.typography.bodyMedium,
             color = corTexto
         )
     }

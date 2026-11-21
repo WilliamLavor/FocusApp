@@ -1,4 +1,5 @@
 package com.example.focusapp.sensor
+import android.util.Log
 
 import android.content.Context
 import android.hardware.Sensor
@@ -31,9 +32,17 @@ class SensorProximidade(context: Context) : SensorEventListener {
 
     // O Android chama esta função toda vez que o valor do sensor muda
     override fun onSensorChanged(event: SensorEvent) {
+
         val distancia = event.values[0]
-        // Perto = distância menor que o alcance máximo do sensor
-        val perto = distancia < (sensor?.maximumRange ?: 0f)
+        val alcance = sensor?.maximumRange ?: 0f
+
+        val perto = distancia < alcance
+
+        Log.d(
+            "SensorProximidade",
+            "Distância: $distancia cm | Alcance: $alcance cm | Perto: $perto"
+        )
+
         aoMudar(perto)
     }
 
