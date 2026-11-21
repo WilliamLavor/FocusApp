@@ -25,12 +25,13 @@ import androidx.lifecycle.lifecycleScope
 import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.FocusSession
 import com.example.focusapp.sensor.MedidorRuido
-import com.example.focusapp.sensor.SensorProximidade
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
+import com.example.focusapp.sensor.SensorVirado
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,37 +122,35 @@ fun FocusScreen(
     }
 
     // Sensores
-    val sensorProximidade = remember {
-        SensorProximidade(context)
+    // Acelerômetro
+    val sensorVirado = remember {
+        SensorVirado(context)
     }
 
 
     // Ciclo de vida do aplicativo
     DisposableEffect(activity) {
 
-        sensorProximidade.aoMudar = { perto ->
-            if (perto) iniciarFoco()
+        // Só inicia o foco quando o acelerômetro confirma a posição.
+        sensorVirado.aoMudar = { virado ->
+            if (virado) {
+                iniciarFoco()
+            }
         }
-
-
 
         val observador = LifecycleEventObserver { _, evento ->
 
             if (evento == Lifecycle.Event.ON_START) {
                 appVisivel = true
-
-                sensorProximidade.iniciar()
-
+                sensorVirado.iniciar()
             }
 
             if (evento == Lifecycle.Event.ON_STOP) {
 
                 appVisivel = false
+                sensorVirado.parar()
 
-                sensorProximidade.parar()
-
-
-                // Se havia uma sessão ativa, salvamos como abandonada
+                // Se havia uma sessão ativa, salvamos como abandonada.
                 if (inicioSessao > 0L) {
 
                     val agora = System.currentTimeMillis()
@@ -178,7 +177,6 @@ fun FocusScreen(
                         dao.inserir(sessao)
                     }
 
-                    // Impede que a mesma sessão seja salva novamente
                     inicioSessao = 0L
                 }
 
@@ -190,12 +188,9 @@ fun FocusScreen(
 
         onDispose {
             activity.lifecycle.removeObserver(observador)
-
-            sensorProximidade.parar()
-
+            sensorVirado.parar()
         }
     }
-
     // Impede o botão voltar durante o foco
     BackHandler(enabled = focando) { }
 
@@ -298,7 +293,7 @@ fun FocusScreen(
 
                         Text("Vire a tela para baixo na mesa")
 
-                        if (!sensorProximidade.existe) {
+                        if (!sensorVirado.existe) {
                             Text(
                                 text = "Este aparelho não possui sensor de proximidade",
                                 color = MaterialTheme.colorScheme.error

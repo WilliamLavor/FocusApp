@@ -1,3 +1,4 @@
+
 package com.example.focusapp.sensor
 
 import android.content.Context
@@ -5,46 +6,108 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import kotlin.math.abs
+import kotlin.math.sqrt
 
-// Usa o acelerômetro para saber se o celular está com a tela virada para baixo.
-// Funciona mesmo com capinha alta, porque mede a gravidade e não a distância.
 class SensorVirado(context: Context) : SensorEventListener {
 
-    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    private val sensorManager =
+        context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-    // Função que a tela define para ser avisada: true = tela virada para baixo
+    private val sensor: Sensor? =
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
     var aoMudar: (Boolean) -> Unit = {}
 
-    // false se o aparelho não tiver acelerômetro
     val existe: Boolean = sensor != null
 
-    // Guarda o último estado para só avisar quando ele mudar
+    private var registrado = false
     private var viradoParaBaixo = false
 
+    // Momento em que o celular começou a permanecer na posição desejada.
+    private var inicioPosicaoNanos: Long? = null
+
     fun iniciar() {
+        if (sensor == null || registrado) return
+
         viradoParaBaixo = false
-        if (sensor != null) {
-            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
-        }
+        inicioPosicaoNanos = null
+
+        registrado = sensorManager.registerListener(
+            this,
+            sensor,
+            SensorManager.SENSOR_DELAY_NORMAL
+        )
     }
 
     fun parar() {
-        sensorManager.unregisterListener(this)
+        if (registrado) {
+            sensorManager.unregisterListener(this)
+            registrado = false
+        }
+
+        viradoParaBaixo = false
+        inicioPosicaoNanos = null
     }
 
-    // O Android chama esta função toda vez que o acelerômetro mede algo novo
     override fun onSensorChanged(event: SensorEvent) {
-        // Eixo Z: perto de +9,8 com a tela para cima e de -9,8 com a tela para baixo
-        val z = event.values[2]
-        val agoraVirado = z < -7
 
-        if (agoraVirado != viradoParaBaixo) {
-            viradoParaBaixo = agoraVirado
-            aoMudar(agoraVirado)
+        val x = event.values[0]
+        val y = event.values[1]
+        val z = event.values[2]
+
+        // Calcula a intensidade total da aceleração.
+        val intensidade = sqrt(x * x + y * y + z * z)
+
+        // Verifica se o aparelho está praticamente em repouso.
+        val aceleracaoEstavel =
+            abs(intensidade - SensorManager.GRAVITY_EARTH) < 1.0f
+
+        // Para entrar: exige uma posição bem próxima da tela para baixo.
+        if (!viradoParaBaixo) {
+
+            val orientacaoValida = z <= -9.0f && aceleracaoEstavel
+
+            if (orientacaoValida) {
+
+                if (inicioPosicaoNanos == null) {
+                    inicioPosicaoNanos = event.timestamp
+                }
+
+                val tempoDecorrido =
+                    event.timestamp - inicioPosicaoNanos!!
+
+                // Só ativa depois de 2 segundos na posição desejada.
+                if (tempoDecorrido >= TEMPO_ESTAVEL_NANOS) {
+
+                    viradoParaBaixo = true
+                    inicioPosicaoNanos = null
+
+                    aoMudar(true)
+                }
+
+            } else {
+                // Se sair da posição antes dos 2 segundos, reinicia a contagem.
+                inicioPosicaoNanos = null
+            }
+
+        } else {
+
+            // Limite diferente para evitar oscilações na detecção.
+            if (z > -8.5f) {
+
+                viradoParaBaixo = false
+                inicioPosicaoNanos = null
+
+                aoMudar(false)
+            }
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+    }
+
+    companion object {
+        private const val TEMPO_ESTAVEL_NANOS = 2_000_000_000L
     }
 }
