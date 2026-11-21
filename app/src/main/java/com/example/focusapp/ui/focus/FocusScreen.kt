@@ -31,7 +31,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 import com.example.focusapp.sensor.SensorVirado
+import android.os.SystemClock
 
+
+private const val DURACAO_SESSAO_SEGUNDOS = 25 * 60
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,12 +62,34 @@ fun FocusScreen(
     var somaRuido by remember { mutableIntStateOf(0) }
     var quantidadeMedicoes by remember { mutableIntStateOf(0) }
 
+    var inicioCronometroMs by remember {
+        mutableLongStateOf(0L)
+    }
+
+    var tempoRestanteSegundos by remember {
+        mutableIntStateOf(DURACAO_SESSAO_SEGUNDOS)
+    }
+
+    var sessaoConcluida by remember {
+        mutableStateOf(false)
+    }
+
+
+
     // Inicia uma sessão apenas uma vez
     fun iniciarFoco() {
         if (!focando) {
             inicioSessao = System.currentTimeMillis()
+
+            inicioCronometroMs = SystemClock.elapsedRealtime()
+
+            tempoRestanteSegundos = DURACAO_SESSAO_SEGUNDOS
+
+            sessaoConcluida = false
+
             somaRuido = 0
             quantidadeMedicoes = 0
+
             focando = true
         }
     }
@@ -94,6 +119,7 @@ fun FocusScreen(
     // Medição do ruído durante o foco
     var ruidoDb by remember { mutableIntStateOf(0) }
 
+    // Medição contínua do ruído durante o foco
     LaunchedEffect(temPermissao, appVisivel, focando) {
 
         if (temPermissao && appVisivel && focando) {
@@ -108,7 +134,10 @@ fun FocusScreen(
                         medidor.lerDb()
                     }
 
+                    // Atualiza o valor exibido na tela.
                     ruidoDb = leitura
+
+                    // Acumula as medições para calcular a média da sessão.
                     somaRuido += leitura
                     quantidadeMedicoes++
 
@@ -117,6 +146,66 @@ fun FocusScreen(
 
             } finally {
                 medidor.parar()
+            }
+        }
+    }
+
+    // Cronômetro de 25 minutos
+    LaunchedEffect(focando) {
+
+        if (focando && inicioCronometroMs > 0L) {
+
+            val inicio = inicioCronometroMs
+            val dataInicio = inicioSessao
+
+            while (true) {
+
+                val tempoDecorrido = (
+                        (SystemClock.elapsedRealtime() - inicio) / 1000L
+                        ).toInt()
+
+                val restante = (
+                        DURACAO_SESSAO_SEGUNDOS - tempoDecorrido
+                        ).coerceAtLeast(0)
+
+                tempoRestanteSegundos = restante
+
+                // O tempo acabou!
+                if (restante == 0) {
+
+                    val media = if (quantidadeMedicoes > 0) {
+                        somaRuido / quantidadeMedicoes
+                    } else {
+                        0
+                    }
+
+                    val sessao = FocusSession(
+                        materia = materia.ifBlank { "Estudo livre" },
+                        data = dataInicio,
+                        duracaoMinutos = 25,
+                        status = "CONCLUIDO",
+                        mediaDb = media
+                    )
+
+                    // Impede que o ON_STOP salve a mesma sessão
+                    // novamente como abandonada.
+                    inicioSessao = 0L
+                    inicioCronometroMs = 0L
+
+                    sessaoConcluida = true
+                    focando = false
+                    inicioCronometroMs = 0L
+                    tempoRestanteSegundos = DURACAO_SESSAO_SEGUNDOS
+
+                    // Salva no Room.
+                    activity.lifecycleScope.launch {
+                        dao.inserir(sessao)
+                    }
+
+                    break
+                }
+
+                delay(1000)
             }
         }
     }
@@ -222,7 +311,8 @@ fun FocusScreen(
 
         TelaFocoAtiva(
             materia = materia,
-            textoRuido = textoRuido
+            textoRuido = textoRuido,
+            tempoRestanteSegundos = tempoRestanteSegundos
         )
 
     } else {
@@ -317,6 +407,13 @@ fun FocusScreen(
                         }
                     }
                 }
+                if (sessaoConcluida) {
+                    Text(
+                        text = "Sessão concluída! Parabéns pelos 25 minutos de foco.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
 
                 OutlinedButton(
                     onClick = { materia = "" },
@@ -333,10 +430,20 @@ fun FocusScreen(
 @Composable
 private fun TelaFocoAtiva(
     materia: String,
-    textoRuido: String
+    textoRuido: String,
+    tempoRestanteSegundos: Int
 ) {
     val corFundo = MaterialTheme.colorScheme.onBackground
     val corTexto = MaterialTheme.colorScheme.background
+    val horas = tempoRestanteSegundos / 3600
+    val minutos = (tempoRestanteSegundos % 3600) / 60
+    val segundos = tempoRestanteSegundos % 60
+
+    val tempoFormatado = "%02d : %02d : %02d".format(
+        horas,
+        minutos,
+        segundos
+    )
 
     Column(
         modifier = Modifier
@@ -359,7 +466,7 @@ private fun TelaFocoAtiva(
         }
 
         Text(
-            text = "00 : 25 : 00",
+            text = tempoFormatado,
             style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold,
             color = corTexto
