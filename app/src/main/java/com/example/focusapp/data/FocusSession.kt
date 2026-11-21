@@ -21,16 +21,16 @@ data class FocusSession(
 
     val notas: String = "",
 
-    // Avaliação de 1 a 5 estrelas (0 = ainda não avaliada)
+    // estrelas de 1 a 5 (0 = sem avaliação)
     val avaliacao: Int = 0,
 
-    // Fatores escolhidos na avaliação, separados por vírgula (ex.: "Silêncio,Conforto")
+    // fatores separados por vírgula
     val fatores: String = "",
 
-    // Maior e menor nível de ruído medidos durante a sessão
+    // maior e menor dB da sessão
     val picoDb: Int = 0,
     val minDb: Int = 0,
 
-    // Local de estudo (id da tabela "locais"); null = sem local
+    // id do local (null = sem local)
     val localId: Int? = null
 )

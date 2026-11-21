@@ -33,7 +33,7 @@ fun FocusScreen(
     val context = LocalContext.current
     val activity = context as ComponentActivity
 
-    // Permissão do microfone (é assunto da interface, então fica aqui)
+    // permissão do microfone
     var temPermissao by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -59,7 +59,7 @@ fun FocusScreen(
         viewModel.definirPermissaoMicrofone(temPermissao)
     }
 
-    // Ciclo de vida: avisa o ViewModel quando o app vai para segundo plano
+    // avisa o ViewModel quando o app inicia ou para
     DisposableEffect(activity) {
         val observador = LifecycleEventObserver { _, evento ->
             if (evento == Lifecycle.Event.ON_START) viewModel.aoIniciarApp()
@@ -99,6 +99,7 @@ fun FocusScreen(
     val textoRuido = when {
         !temPermissao -> "Microfone sem permissão"
         !viewModel.focando -> "O ruído será medido durante o foco"
+        viewModel.pausado -> "Medição de ruído pausada"
         else -> "Ruído Atual: $ruidoDb dB ($descricaoRuido)"
     }
 
@@ -108,7 +109,10 @@ fun FocusScreen(
         TelaFocoAtiva(
             materia = viewModel.materia,
             textoRuido = textoRuido,
-            tempoRestanteSegundos = viewModel.tempoRestanteSegundos
+            tempoRestanteSegundos = viewModel.tempoRestanteSegundos,
+            pausado = viewModel.pausado,
+            onRetomar = viewModel::retomarFoco,
+            onEncerrar = viewModel::encerrarSessao
         )
 
     } else {
@@ -236,7 +240,10 @@ fun FocusScreen(
 private fun TelaFocoAtiva(
     materia: String,
     textoRuido: String,
-    tempoRestanteSegundos: Int
+    tempoRestanteSegundos: Int,
+    pausado: Boolean,
+    onRetomar: () -> Unit,
+    onEncerrar: () -> Unit
 ) {
     val corFundo = MaterialTheme.colorScheme.onBackground
     val corTexto = MaterialTheme.colorScheme.background
@@ -270,13 +277,17 @@ private fun TelaFocoAtiva(
         )
 
         Text(
-            text = "ESTADO: FOCANDO",
+            text = if (pausado) "ESTADO: PAUSADO" else "ESTADO: FOCANDO",
             style = MaterialTheme.typography.titleMedium,
             color = corTexto
         )
 
         Text(
-            text = "Foco ativo. Não saia do aplicativo!",
+            text = if (pausado) {
+                "Vire o celular para baixo por 2 segundos para continuar."
+            } else {
+                "Foco ativo. Para pausar, desvire o celular. Não saia do aplicativo!"
+            },
             color = corTexto
         )
 
@@ -284,10 +295,23 @@ private fun TelaFocoAtiva(
             text = textoRuido,
             color = corTexto
         )
+
+        if (pausado) {
+            Button(onClick = onRetomar) {
+                Text("Retomar")
+            }
+
+            TextButton(
+                onClick = onEncerrar,
+                colors = ButtonDefaults.textButtonColors(contentColor = corTexto)
+            ) {
+                Text("Encerrar sessão")
+            }
+        }
     }
 }
 
-// Converte segundos em "HH : MM : SS"
+// segundos -> HH : MM : SS
 private fun formatarTempo(totalSegundos: Int): String {
     val horas = totalSegundos / 3600
     val minutos = (totalSegundos % 3600) / 60

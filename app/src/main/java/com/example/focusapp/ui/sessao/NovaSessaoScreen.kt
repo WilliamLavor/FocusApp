@@ -35,7 +35,7 @@ import com.example.focusapp.ui.focus.FOCO_MAX_MINUTOS
 import com.example.focusapp.ui.focus.FOCO_MIN_MINUTOS
 import com.example.focusapp.ui.focus.FocusViewModel
 
-// Tela onde o usuário escolhe a matéria e quantos minutos quer de foco e de descanso.
+// matéria e minutos de foco/descanso
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NovaSessaoScreen(
@@ -43,7 +43,7 @@ fun NovaSessaoScreen(
     onIniciar: () -> Unit,
     onNavigateToHistory: () -> Unit
 ) {
-    // Estado do formulário (só vira configuração da sessão ao tocar em "Iniciar")
+    // campos do formulário
     var materia by remember { mutableStateOf(viewModel.materia) }
     var focoTexto by remember { mutableStateOf(viewModel.focoMinutos.toString()) }
     var descansoTexto by remember { mutableStateOf(viewModel.descansoMinutos.toString()) }
@@ -135,7 +135,6 @@ fun NovaSessaoScreen(
 
             Button(
                 onClick = {
-                    // As duas conversões já foram validadas pelo botão estar habilitado.
                     viewModel.configurarSessao(materia, foco ?: 0, descanso ?: 0)
                     onIniciar()
                 },

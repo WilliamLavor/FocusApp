@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.focusapp.alerta.AlertaFim
 import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.FocusSession
 import com.example.focusapp.sensor.MedidorRuido
@@ -20,7 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
-// Limites aceitos para os minutos escolhidos pelo usuário
+// limites dos minutos (foco e descanso)
 const val FOCO_MIN_MINUTOS = 1
 const val FOCO_MAX_MINUTOS = 180
 const val DESCANSO_MIN_MINUTOS = 0   // 0 = sem descanso
@@ -29,15 +30,14 @@ const val DESCANSO_MAX_MINUTOS = 60
 private const val FOCO_PADRAO_MINUTOS = 25
 private const val DESCANSO_PADRAO_MINUTOS = 5
 
-// Guarda o estado e a lógica da sessão (cronômetro, descanso, sensores, ruído e banco).
-// As telas só desenham o estado e repassam eventos.
-// Este ViewModel é compartilhado entre a tela "Nova sessão" e a tela do timer.
+// Estado e lógica da sessão. As duas telas (Nova sessão e timer) usam o mesmo.
 class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
     private val dao = AppDatabase.getDatabase(application).focusDao()
     private val sensorVirado = SensorVirado(application)
+    private val alerta = AlertaFim(application)
 
-    // Configuração escolhida na tela "Nova sessão"
+    // vem da tela Nova sessão
     var materia by mutableStateOf("")
         private set
     var focoMinutos by mutableIntStateOf(FOCO_PADRAO_MINUTOS)
@@ -45,8 +45,10 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     var descansoMinutos by mutableIntStateOf(DESCANSO_PADRAO_MINUTOS)
         private set
 
-    // Estado observado pela interface
+    // estado que a tela observa
     var focando by mutableStateOf(false)
+        private set
+    var pausado by mutableStateOf(false)
         private set
     var emDescanso by mutableStateOf(false)
         private set
@@ -59,10 +61,11 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
     val acelerometroExiste: Boolean = sensorVirado.existe
 
-    // Estado interno da sessão
+    // controle interno
     private var temPermissao = false
     private var inicioSessao = 0L
-    private var inicioCronometroMs = 0L
+    private var fimPrevistoMs = 0L          // quando o foco acaba (elapsedRealtime)
+    private var restanteAoPausarMs = 0L     // quanto faltava ao pausar
     private var somaRuido = 0
     private var quantidadeMedicoes = 0
     private var cronometroJob: Job? = null
@@ -70,15 +73,18 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     private var ruidoJob: Job? = null
 
     init {
-        // Só inicia o foco quando o acelerômetro confirma a posição.
+        // virou: inicia ou retoma. desvirou: pausa
         sensorVirado.aoMudar = { virado ->
-            if (virado) iniciarFoco()
+            if (virado) {
+                if (focando) retomar() else iniciarFoco()
+            } else {
+                pausar()
+            }
         }
     }
 
-    // Eventos vindos da interface
+    // ações da tela
 
-    // Chamado pela tela "Nova sessão" ao tocar em "Iniciar sessão".
     fun configurarSessao(novaMateria: String, foco: Int, descanso: Int) {
         if (focando) return
 
@@ -94,6 +100,15 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         encerrarDescanso()
     }
 
+    fun retomarFoco() {
+        retomar()
+    }
+
+    // encerra e salva como abandonada
+    fun encerrarSessao() {
+        if (focando) abandonarSessao()
+    }
+
     fun definirPermissaoMicrofone(concedida: Boolean) {
         temPermissao = concedida
         if (focando) iniciarMedicaoRuido()
@@ -105,25 +120,24 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
     fun aoPararApp() {
         sensorVirado.parar()
-        // Se havia uma sessão ativa, salva como abandonada.
+        // sessão em andamento vira abandonada
         if (focando) abandonarSessao()
         if (emDescanso) encerrarDescanso()
     }
 
-    // Chamado quando a tela sai da composição (ex.: abriu o histórico).
+    // a tela saiu (ex.: foi pro histórico)
     fun pausarSensor() {
         sensorVirado.parar()
     }
 
-    // Lógica da sessão
-
     private fun iniciarFoco() {
-        // Durante o descanso, virar o celular não inicia um novo foco.
+        // no descanso não começa foco novo
         if (focando || emDescanso) return
 
         inicioSessao = System.currentTimeMillis()
-        inicioCronometroMs = SystemClock.elapsedRealtime()
+        fimPrevistoMs = SystemClock.elapsedRealtime() + focoMinutos * 60_000L
         tempoRestanteSegundos = focoMinutos * 60
+        pausado = false
         sessaoConcluida = false
         somaRuido = 0
         quantidadeMedicoes = 0
@@ -135,13 +149,13 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun iniciarCronometro() {
         cronometroJob?.cancel()
-        val inicio = inicioCronometroMs
-        val totalSegundos = focoMinutos * 60
+        val fim = fimPrevistoMs
 
         cronometroJob = viewModelScope.launch {
             while (isActive) {
-                val decorrido = ((SystemClock.elapsedRealtime() - inicio) / 1000L).toInt()
-                val restante = (totalSegundos - decorrido).coerceAtLeast(0)
+                val faltaMs = (fim - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+                // arredonda pra cima pra não mostrar 00:00:00 antes da hora
+                val restante = ((faltaMs + 999L) / 1000L).toInt()
                 tempoRestanteSegundos = restante
 
                 if (restante == 0) {
@@ -153,9 +167,30 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // pausa o timer e o microfone, guardando o que faltava
+    private fun pausar() {
+        if (!focando || pausado) return
+
+        restanteAoPausarMs = (fimPrevistoMs - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+        cronometroJob?.cancel()
+        cronometroJob = null
+        ruidoJob?.cancel()
+        ruidoJob = null
+        pausado = true
+    }
+
+    private fun retomar() {
+        if (!focando || !pausado) return
+
+        fimPrevistoMs = SystemClock.elapsedRealtime() + restanteAoPausarMs
+        pausado = false
+        iniciarCronometro()
+        iniciarMedicaoRuido()
+    }
+
     private fun iniciarMedicaoRuido() {
         ruidoJob?.cancel()
-        if (!temPermissao || !focando) return
+        if (!temPermissao || !focando || pausado) return
 
         ruidoJob = viewModelScope.launch {
             val medidor = MedidorRuido()
@@ -166,7 +201,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
                     val leitura = withContext(Dispatchers.IO) { medidor.lerDb() }
                     ruidoDb = leitura
 
-                    // Ignora leituras 0 (silêncio total/falha) para não puxar a média para baixo.
+                    // leitura 0 não entra na média
                     if (leitura > 0) {
                         somaRuido += leitura
                         quantidadeMedicoes++
@@ -194,14 +229,16 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         encerrarEstado()
         sessaoConcluida = true
         salvar(sessao)
+        alerta.tocar()
 
-        // Depois do foco vem o descanso (se o usuário escolheu mais de 0 minutos).
+        // descanso depois do foco, se tiver
         if (descansoMinutos > 0) iniciarDescanso()
     }
 
     private fun abandonarSessao() {
         if (inicioSessao > 0L) {
-            val minutos = ((System.currentTimeMillis() - inicioSessao) / 60000.0)
+            // minutos estudados de verdade (sem contar a pausa)
+            val minutos = ((focoMinutos * 60 - tempoRestanteSegundos) / 60.0)
                 .roundToInt()
                 .coerceAtLeast(1)
 
@@ -217,12 +254,15 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         encerrarEstado()
     }
 
-    // Zera o estado do foco e para cronômetro e microfone.
+    // limpa o estado do foco
     private fun encerrarEstado() {
         inicioSessao = 0L
-        inicioCronometroMs = 0L
+        fimPrevistoMs = 0L
+        restanteAoPausarMs = 0L
         ruidoJob?.cancel()
+        cronometroJob?.cancel()
         cronometroJob = null
+        pausado = false
         focando = false
         tempoRestanteSegundos = focoMinutos * 60
     }
@@ -242,6 +282,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
                 tempoRestanteSegundos = restante
 
                 if (restante == 0) {
+                    alerta.tocar()
                     encerrarDescanso()
                     break
                 }
@@ -250,7 +291,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Termina o descanso (acabou o tempo ou o usuário pulou) e deixa o timer pronto para o próximo foco.
+    // acabou o descanso (ou pulou)
     private fun encerrarDescanso() {
         descansoJob?.cancel()
         descansoJob = null

@@ -19,7 +19,7 @@ fun AppNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    // ViewModel único, compartilhado entre "Nova sessão" e o timer (escopo da Activity).
+    // mesmo ViewModel nas duas telas (Nova sessão e timer)
     val focusViewModel: FocusViewModel = viewModel()
 
     NavHost(
@@ -28,7 +28,7 @@ fun AppNavHost(
         modifier = modifier
     ) {
 
-        // 0. Tela de Nova sessão (matéria e minutos de foco/descanso)
+        // 0. Tela de Nova sessão
         composable(route = NavRoutes.NovaSessao.route) {
             NovaSessaoScreen(
                 viewModel = focusViewModel,
@@ -41,7 +41,7 @@ fun AppNavHost(
             )
         }
 
-        // 1. Tela de Foco (timer)
+        // 1. Tela de Foco
         composable(route = NavRoutes.Focus.route) {
             FocusScreen(
                 viewModel = focusViewModel,
