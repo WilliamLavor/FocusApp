@@ -191,7 +191,7 @@ fun DetailScreen(
 
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Guardar Alterações")
+                    Text("Salvar alterações")
                 }
 
                 // Excluir sessão
@@ -207,7 +207,7 @@ fun DetailScreen(
 
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Eliminar Registo")
+                    Text("Excluir sessão")
                 }
             }
         }

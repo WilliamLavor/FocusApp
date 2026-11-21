@@ -138,8 +138,11 @@ fun FocusScreen(
                     ruidoDb = leitura
 
                     // Acumula as medições para calcular a média da sessão.
-                    somaRuido += leitura
-                    quantidadeMedicoes++
+                    // Ignora leituras 0 (silêncio total/falha) para não puxar a média para baixo.
+                    if (leitura > 0) {
+                        somaRuido += leitura
+                        quantidadeMedicoes++
+                    }
 
                     delay(500)
                 }
@@ -385,7 +388,7 @@ fun FocusScreen(
 
                         if (!sensorVirado.existe) {
                             Text(
-                                text = "Este aparelho não possui sensor de proximidade",
+                                text = "Este aparelho não possui acelerômetro",
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
@@ -419,7 +422,7 @@ fun FocusScreen(
                     onClick = { materia = "" },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Descartar Sessão")
+                    Text("Limpar matéria")
                 }
             }
         }
