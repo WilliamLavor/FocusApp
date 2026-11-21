@@ -7,13 +7,14 @@ import androidx.room3.RoomDatabase
 import androidx.sqlite.driver.AndroidSQLiteDriver
 
 @Database(
-    entities = [FocusSession::class],
-    version = 1,
+    entities = [FocusSession::class, Local::class],
+    version = 2,
     exportSchema = false
 )
 
 abstract class AppDatabase : RoomDatabase(){
     abstract fun focusDao(): FocusDao
+    abstract fun localDao(): LocalDao
 
     companion object {
 

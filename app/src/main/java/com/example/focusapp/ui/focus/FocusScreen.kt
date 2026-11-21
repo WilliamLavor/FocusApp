@@ -21,80 +21,18 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.lifecycleScope
-import com.example.focusapp.data.AppDatabase
-import com.example.focusapp.data.FocusSession
-import com.example.focusapp.sensor.MedidorRuido
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlin.math.roundToInt
-import com.example.focusapp.sensor.SensorVirado
-import android.os.SystemClock
-
-
-private const val DURACAO_SESSAO_SEGUNDOS = 25 * 60
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FocusScreen(
-    onNavigateToHistory: () -> Unit
+    onNavigateToHistory: () -> Unit,
+    viewModel: FocusViewModel = viewModel()
 ) {
-    var materia by remember { mutableStateOf("") }
-    var focando by remember { mutableStateOf(false) }
-    var appVisivel by remember { mutableStateOf(true) }
-
     val context = LocalContext.current
     val activity = context as ComponentActivity
 
-    // Acesso ao banco
-    val banco = remember {
-        AppDatabase.getDatabase(context)
-    }
-
-    val dao = remember {
-        banco.focusDao()
-    }
-
-    // Dados da sessão atual
-    var inicioSessao by remember { mutableLongStateOf(0L) }
-    var somaRuido by remember { mutableIntStateOf(0) }
-    var quantidadeMedicoes by remember { mutableIntStateOf(0) }
-
-    var inicioCronometroMs by remember {
-        mutableLongStateOf(0L)
-    }
-
-    var tempoRestanteSegundos by remember {
-        mutableIntStateOf(DURACAO_SESSAO_SEGUNDOS)
-    }
-
-    var sessaoConcluida by remember {
-        mutableStateOf(false)
-    }
-
-
-
-    // Inicia uma sessão apenas uma vez
-    fun iniciarFoco() {
-        if (!focando) {
-            inicioSessao = System.currentTimeMillis()
-
-            inicioCronometroMs = SystemClock.elapsedRealtime()
-
-            tempoRestanteSegundos = DURACAO_SESSAO_SEGUNDOS
-
-            sessaoConcluida = false
-
-            somaRuido = 0
-            quantidadeMedicoes = 0
-
-            focando = true
-        }
-    }
-
-    // Permissão do microfone
+    // Permissão do microfone (é assunto da interface, então fica aqui)
     var temPermissao by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -116,183 +54,40 @@ fun FocusScreen(
         }
     }
 
-    // Medição do ruído durante o foco
-    var ruidoDb by remember { mutableIntStateOf(0) }
-
-    // Medição contínua do ruído durante o foco
-    LaunchedEffect(temPermissao, appVisivel, focando) {
-
-        if (temPermissao && appVisivel && focando) {
-
-            val medidor = MedidorRuido()
-            medidor.iniciar()
-
-            try {
-                while (true) {
-
-                    val leitura = withContext(Dispatchers.IO) {
-                        medidor.lerDb()
-                    }
-
-                    // Atualiza o valor exibido na tela.
-                    ruidoDb = leitura
-
-                    // Acumula as medições para calcular a média da sessão.
-                    somaRuido += leitura
-                    quantidadeMedicoes++
-
-                    delay(500)
-                }
-
-            } finally {
-                medidor.parar()
-            }
-        }
+    LaunchedEffect(temPermissao) {
+        viewModel.definirPermissaoMicrofone(temPermissao)
     }
 
-    // Cronômetro de 25 minutos
-    LaunchedEffect(focando) {
-
-        if (focando && inicioCronometroMs > 0L) {
-
-            val inicio = inicioCronometroMs
-            val dataInicio = inicioSessao
-
-            while (true) {
-
-                val tempoDecorrido = (
-                        (SystemClock.elapsedRealtime() - inicio) / 1000L
-                        ).toInt()
-
-                val restante = (
-                        DURACAO_SESSAO_SEGUNDOS - tempoDecorrido
-                        ).coerceAtLeast(0)
-
-                tempoRestanteSegundos = restante
-
-                // O tempo acabou!
-                if (restante == 0) {
-
-                    val media = if (quantidadeMedicoes > 0) {
-                        somaRuido / quantidadeMedicoes
-                    } else {
-                        0
-                    }
-
-                    val sessao = FocusSession(
-                        materia = materia.ifBlank { "Estudo livre" },
-                        data = dataInicio,
-                        duracaoMinutos = 25,
-                        status = "CONCLUIDO",
-                        mediaDb = media
-                    )
-
-                    // Impede que o ON_STOP salve a mesma sessão
-                    // novamente como abandonada.
-                    inicioSessao = 0L
-                    inicioCronometroMs = 0L
-
-                    sessaoConcluida = true
-                    focando = false
-                    inicioCronometroMs = 0L
-                    tempoRestanteSegundos = DURACAO_SESSAO_SEGUNDOS
-
-                    // Salva no Room.
-                    activity.lifecycleScope.launch {
-                        dao.inserir(sessao)
-                    }
-
-                    break
-                }
-
-                delay(1000)
-            }
-        }
-    }
-
-    // Sensores
-    // Acelerômetro
-    val sensorVirado = remember {
-        SensorVirado(context)
-    }
-
-
-    // Ciclo de vida do aplicativo
+    // Ciclo de vida: avisa o ViewModel quando o app vai para segundo plano
     DisposableEffect(activity) {
-
-        // Só inicia o foco quando o acelerômetro confirma a posição.
-        sensorVirado.aoMudar = { virado ->
-            if (virado) {
-                iniciarFoco()
-            }
-        }
-
         val observador = LifecycleEventObserver { _, evento ->
-
-            if (evento == Lifecycle.Event.ON_START) {
-                appVisivel = true
-                sensorVirado.iniciar()
-            }
-
-            if (evento == Lifecycle.Event.ON_STOP) {
-
-                appVisivel = false
-                sensorVirado.parar()
-
-                // Se havia uma sessão ativa, salvamos como abandonada.
-                if (inicioSessao > 0L) {
-
-                    val agora = System.currentTimeMillis()
-
-                    val duracao = (
-                            (agora - inicioSessao) / 60000.0
-                            ).roundToInt().coerceAtLeast(1)
-
-                    val media = if (quantidadeMedicoes > 0) {
-                        somaRuido / quantidadeMedicoes
-                    } else {
-                        0
-                    }
-
-                    val sessao = FocusSession(
-                        materia = materia.ifBlank { "Estudo livre" },
-                        data = inicioSessao,
-                        duracaoMinutos = duracao,
-                        status = "ABANDONADO",
-                        mediaDb = media
-                    )
-
-                    activity.lifecycleScope.launch {
-                        dao.inserir(sessao)
-                    }
-
-                    inicioSessao = 0L
-                }
-
-                focando = false
-            }
+            if (evento == Lifecycle.Event.ON_START) viewModel.aoIniciarApp()
+            if (evento == Lifecycle.Event.ON_STOP) viewModel.aoPararApp()
         }
 
         activity.lifecycle.addObserver(observador)
 
         onDispose {
             activity.lifecycle.removeObserver(observador)
-            sensorVirado.parar()
+            viewModel.pausarSensor()
         }
     }
+
     // Impede o botão voltar durante o foco
-    BackHandler(enabled = focando) { }
+    BackHandler(enabled = viewModel.focando) { }
 
     // Mantém a tela ligada durante o foco
     val view = LocalView.current
 
-    DisposableEffect(focando) {
-        view.keepScreenOn = focando
+    DisposableEffect(viewModel.focando) {
+        view.keepScreenOn = viewModel.focando
 
         onDispose {
             view.keepScreenOn = false
         }
     }
+
+    val ruidoDb = viewModel.ruidoDb
 
     val descricaoRuido = when {
         ruidoDb < 40 -> "Silencioso"
@@ -302,17 +97,17 @@ fun FocusScreen(
 
     val textoRuido = when {
         !temPermissao -> "Microfone sem permissão"
-        !focando -> "O ruído será medido durante o foco"
+        !viewModel.focando -> "O ruído será medido durante o foco"
         else -> "Ruído Atual: $ruidoDb dB ($descricaoRuido)"
     }
 
     // Exibe a tela adequada
-    if (focando) {
+    if (viewModel.focando) {
 
         TelaFocoAtiva(
-            materia = materia,
+            materia = viewModel.materia,
             textoRuido = textoRuido,
-            tempoRestanteSegundos = tempoRestanteSegundos
+            tempoRestanteSegundos = viewModel.tempoRestanteSegundos
         )
 
     } else {
@@ -347,8 +142,8 @@ fun FocusScreen(
             ) {
 
                 OutlinedTextField(
-                    value = materia,
-                    onValueChange = { materia = it },
+                    value = viewModel.materia,
+                    onValueChange = viewModel::alterarMateria,
                     label = { Text("Matéria") },
                     placeholder = {
                         Text("Ex: Matemática Discreta")
@@ -383,9 +178,9 @@ fun FocusScreen(
 
                         Text("Vire a tela para baixo na mesa")
 
-                        if (!sensorVirado.existe) {
+                        if (!viewModel.acelerometroExiste) {
                             Text(
-                                text = "Este aparelho não possui sensor de proximidade",
+                                text = "Este aparelho não possui acelerômetro",
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
@@ -407,7 +202,7 @@ fun FocusScreen(
                         }
                     }
                 }
-                if (sessaoConcluida) {
+                if (viewModel.sessaoConcluida) {
                     Text(
                         text = "Sessão concluída! Parabéns pelos 25 minutos de foco.",
                         style = MaterialTheme.typography.bodyLarge,
@@ -416,10 +211,10 @@ fun FocusScreen(
                 }
 
                 OutlinedButton(
-                    onClick = { materia = "" },
+                    onClick = viewModel::limparMateria,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Descartar Sessão")
+                    Text("Limpar matéria")
                 }
             }
         }

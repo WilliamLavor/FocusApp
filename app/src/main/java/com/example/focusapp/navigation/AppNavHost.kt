@@ -22,7 +22,7 @@ fun AppNavHost(
         modifier = modifier
     ) {
 
-        // 1. Ecrã de Foco
+        // 1. Tela de Foco
         composable(route = NavRoutes.Focus.route) {
             FocusScreen(
                 onNavigateToHistory = {
@@ -31,7 +31,7 @@ fun AppNavHost(
             )
         }
 
-        // 2. Ecrã de Histórico
+        // 2. Tela de Histórico
         composable(route = NavRoutes.History.route) {
             HistoryScreen(
                 onNavigateToDetails = { sessionId ->
@@ -43,7 +43,7 @@ fun AppNavHost(
             )
         }
 
-        // 3. Ecrã de Detalhes
+        // 3. Tela de Detalhes
         composable(
             route = NavRoutes.Details.route, // "details/{sessionId}"
             arguments = listOf(
