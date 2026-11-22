@@ -63,12 +63,12 @@ fun AvaliacaoScreen(
     var estrelas by remember { mutableIntStateOf(0) }
     val fatoresEscolhidos = remember { mutableStateListOf<String>() }
 
-    // depois de salvar (ou pular), a sessão pendente some e a tela fecha
+    //salvou ou pulou: fecha a tela
     LaunchedEffect(viewModel.aguardandoAvaliacao) {
         if (!viewModel.aguardandoAvaliacao) onConcluir()
     }
 
-    // se o app sair de cena aqui, a sessão não pode se perder
+    // se o app sair daqui salva a sessão sem nota
     DisposableEffect(activity) {
         val observador = LifecycleEventObserver { _, evento ->
             if (evento == Lifecycle.Event.ON_STOP) {
@@ -83,7 +83,7 @@ fun AvaliacaoScreen(
         }
     }
 
-    // o usuário precisa salvar ou pular
+    // tem que salvar ou pular
     BackHandler(enabled = true) { }
 
     Scaffold(

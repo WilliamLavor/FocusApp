@@ -8,7 +8,7 @@ import com.example.focusapp.data.Local
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-// CRUD dos locais de estudo
+// CRUD dos locais
 class LocaisViewModel(application: Application) : AndroidViewModel(application) {
 
     private val banco = AppDatabase.getDatabase(application)
@@ -17,7 +17,7 @@ class LocaisViewModel(application: Application) : AndroidViewModel(application) 
 
     val locais: Flow<List<Local>> = localDao.observarTodos()
 
-    // id 0 = local novo
+    //id 0 = local novo
     fun salvar(local: Local) {
         viewModelScope.launch {
             if (local.id == 0) {
@@ -28,7 +28,7 @@ class LocaisViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    // as sessões que usavam o local ficam sem local
+    // sessões desse local ficam sem local
     fun excluir(local: Local) {
         viewModelScope.launch {
             sessaoDao.removerLocal(local.id)

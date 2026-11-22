@@ -8,12 +8,12 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 
-// Vibra e toca um som quando o foco ou o descanso acaba.
+// vibra e toca quando o foco/descanso acaba
 class AlertaFim(context: Context) {
 
     private val contexto = context.applicationContext
 
-    // guarda o toque pra ele não ser coletado no meio
+    //guarda o toque pra ele não ser coletado no meio
     private var toque: Ringtone? = null
 
     fun tocar() {
@@ -38,7 +38,7 @@ class AlertaFim(context: Context) {
             val padrao = longArrayOf(0, 400, 200, 400, 200, 400)
             vibrador.vibrate(VibrationEffect.createWaveform(padrao, -1))
         } catch (e: Exception) {
-            // sem vibração, segue sem
+            //sem vibração, segue sem
         }
     }
 

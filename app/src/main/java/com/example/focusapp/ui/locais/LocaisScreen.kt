@@ -46,7 +46,7 @@ fun LocaisScreen(
     onExcluir: (Local) -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    // local aberto no diálogo (id 0 = novo) e local esperando confirmação de exclusão
+    // local no diálogo (id 0 = novo) e local pra excluir
     var emEdicao by remember { mutableStateOf<Local?>(null) }
     var paraExcluir by remember { mutableStateOf<Local?>(null) }
 

@@ -42,7 +42,7 @@ fun HistoryScreen(
         initial = emptyList()
     )
 
-    // nomes dos locais, pra mostrar em cada sessão
+    //nomes dos locais pro card
     val locaisFlow = remember {
         AppDatabase.getDatabase(context).localDao().observarTodos()
     }

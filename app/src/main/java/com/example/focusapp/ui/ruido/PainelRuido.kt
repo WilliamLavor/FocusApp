@@ -20,7 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-// a partir daqui o ruído conta como "barulhento"
+// daqui pra cima é barulhento
 const val LIMITE_BARULHENTO_DB = 60
 
 fun classificarRuido(db: Int): String = when {
@@ -29,7 +29,7 @@ fun classificarRuido(db: Int): String = when {
     else -> "Barulhento"
 }
 
-// Card com o dB atual, gráfico das leituras e média/pico/mínimo
+// dB atual, gráfico e média/pico/mín
 @Composable
 fun PainelRuido(
     leituras: List<Int>,
@@ -154,7 +154,7 @@ private fun Estatistica(titulo: String, valor: Int, modifier: Modifier = Modifie
     }
 }
 
-// junta as leituras em poucas barras, guardando o maior valor de cada grupo
+//junta as leituras em poucas barras (pega o maior de cada grupo)
 private fun resumir(leituras: List<Int>, barras: Int): List<Int> {
     if (leituras.size <= barras) return leituras.toList()
 

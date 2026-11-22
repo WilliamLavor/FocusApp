@@ -27,7 +27,7 @@ fun AppNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    // mesmo ViewModel nas duas telas (Nova sessão e timer)
+    //mesmo ViewModel nas duas telas
     val focusViewModel: FocusViewModel = viewModel()
     val locaisViewModel: LocaisViewModel = viewModel()
     val locais by locaisViewModel.locais.collectAsState(initial = emptyList())
@@ -80,7 +80,7 @@ fun AppNavHost(
             )
         }
 
-        // Tela de Meus locais
+        // Tela de Locais
         composable(route = NavRoutes.Locais.route) {
             LocaisScreen(
                 locais = locais,
@@ -92,7 +92,7 @@ fun AppNavHost(
             )
         }
 
-        // Tela de Métricas por local
+        // Tela de Métricas
         composable(route = NavRoutes.Metricas.route) {
             val metricasViewModel: MetricasViewModel = viewModel()
             val sessoes by metricasViewModel.sessoes.collectAsState(initial = emptyList())
@@ -106,7 +106,7 @@ fun AppNavHost(
             )
         }
 
-        // Tela de Avaliação da sessão
+        // Tela de Avaliação
         composable(route = NavRoutes.Avaliacao.route) {
             AvaliacaoScreen(
                 viewModel = focusViewModel,

@@ -4,17 +4,17 @@ import com.example.focusapp.data.FocusSession
 import com.example.focusapp.data.Local
 import kotlin.math.roundToInt
 
-// Resumo das sessões de um local (ou do grupo "Sem local")
+// resumo de um local (ou do grupo Sem local)
 data class MetricaLocal(
     val nome: String,
     val minutos: Int,
     val mediaDb: Int,           // 0 = sem medição
-    val qualidade: Double?,     // média das estrelas (null = nenhuma avaliação)
+    val qualidade: Double?,     // média das estrelas (null = sem nota)
     val sessoes: Int,
     val temLocal: Boolean
 )
 
-// Agrupa as sessões por local. Local que não existe mais conta como "Sem local".
+// agrupa por local, local apagado vira Sem local
 fun calcularMetricas(sessoes: List<FocusSession>, locais: List<Local>): List<MetricaLocal> {
     val nomes = locais.associate { it.id to it.nome }
 
@@ -44,7 +44,7 @@ fun calcularMetricas(sessoes: List<FocusSession>, locais: List<Local>): List<Met
         .sortedByDescending { it.minutos }
 }
 
-// Melhor nota média; se ninguém avaliou, o local mais usado
+//melhor nota média, ou o mais usado se ninguém avaliou
 fun melhorLocal(metricas: List<MetricaLocal>): MetricaLocal? {
     val comLocal = metricas.filter { it.temLocal }
 

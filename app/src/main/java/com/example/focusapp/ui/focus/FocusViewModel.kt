@@ -64,7 +64,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     var ruidoDb by mutableIntStateOf(0)
         private set
 
-    // leituras de ruído da sessão (alimentam o gráfico)
+    // leituras da sessão (pro gráfico)
     val leituras = mutableStateListOf<Int>()
     var mediaAtualDb by mutableIntStateOf(0)
         private set
@@ -77,7 +77,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     var sessaoConcluida by mutableStateOf(false)
         private set
 
-    // sessão que acabou e ainda espera a avaliação para ser salva
+    // sessão que acabou e espera a avaliação
     var sessaoPendente by mutableStateOf<FocusSession?>(null)
         private set
 
@@ -137,7 +137,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         if (focando) abandonarSessao()
     }
 
-    // salva a sessão pendente com a nota e começa o descanso
+    //salva com a nota e começa o descanso
     fun salvarAvaliacao(estrelas: Int, fatores: List<String>) {
         val pendente = sessaoPendente ?: return
 
@@ -156,7 +156,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         salvarAvaliacao(0, emptyList())
     }
 
-    // app saiu de cena na avaliação: salva sem nota e sem descanso
+    // saiu do app na avaliação: salva sem nota
     fun salvarPendenteSemAvaliacao() {
         val pendente = sessaoPendente ?: return
 
@@ -215,7 +215,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         cronometroJob = viewModelScope.launch {
             while (isActive) {
                 val faltaMs = (fim - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
-                // arredonda pra cima pra não mostrar 00:00:00 antes da hora
+                //arredonda pra cima pra não mostrar 00:00 antes da hora
                 val restante = ((faltaMs + 999L) / 1000L).toInt()
                 tempoRestanteSegundos = restante
 
@@ -283,7 +283,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         if (leitura > picoDb) picoDb = leitura
         if (minDb == 0 || leitura < minDb) minDb = leitura
 
-        // conta um pico só quando o ruído passa do limite (não a cada leitura)
+        //pico = quando passa do limite, não a cada leitura
         val barulhento = leitura >= LIMITE_BARULHENTO_DB
         if (barulhento && !emPico) picosRuido++
         emPico = barulhento
@@ -308,7 +308,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         sessaoConcluida = true
         alerta.tocar()
 
-        // só salva depois da avaliação; o descanso começa junto
+        // salva depois da avaliação
         sessaoPendente = sessao
     }
 

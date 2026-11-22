@@ -10,7 +10,7 @@ private const val TRINTA_DIAS_MS = 30L * 24 * 60 * 60 * 1000
 
 class MetricasViewModel(application: Application) : AndroidViewModel(application) {
 
-    // sessões dos últimos 30 dias, contados a partir de quando a tela abre
+    //últimos 30 dias a partir de quando a tela abre
     val sessoes: Flow<List<FocusSession>> = AppDatabase.getDatabase(application)
         .focusDao()
         .observarDesde(System.currentTimeMillis() - TRINTA_DIAS_MS)

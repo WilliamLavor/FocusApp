@@ -21,7 +21,7 @@ data class FocusSession(
 
     val notas: String = "",
 
-    // estrelas de 1 a 5 (0 = sem avaliação)
+    //estrelas de 1 a 5 (0 = sem avaliação)
     val avaliacao: Int = 0,
 
     // fatores separados por vírgula

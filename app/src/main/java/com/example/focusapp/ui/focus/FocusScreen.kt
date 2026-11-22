@@ -17,10 +17,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -103,6 +105,12 @@ fun FocusScreen(
         else -> "Ruído Atual: $ruidoDb dB ($descricaoRuido)"
     }
 
+    // o anel mostra quanto falta do foco (ou do descanso)
+    val totalSegundos = (
+        if (viewModel.emDescanso) viewModel.descansoMinutos * 60 else viewModel.focoMinutos * 60
+    ).coerceAtLeast(1)
+    val progresso = viewModel.tempoRestanteSegundos / totalSegundos.toFloat()
+
     // Exibe a tela adequada
     if (viewModel.focando) {
 
@@ -110,6 +118,7 @@ fun FocusScreen(
             materia = viewModel.materia,
             textoRuido = textoRuido,
             tempoRestanteSegundos = viewModel.tempoRestanteSegundos,
+            progresso = progresso,
             pausado = viewModel.pausado,
             onRetomar = viewModel::retomarFoco,
             onEncerrar = viewModel::encerrarSessao,
@@ -191,11 +200,21 @@ fun FocusScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
 
-                        Text(
-                            text = formatarTempo(viewModel.tempoRestanteSegundos),
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        AnelTempo(progresso = progresso) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = formatarTempo(viewModel.tempoRestanteSegundos),
+                                    style = MaterialTheme.typography.displayMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                Text(
+                                    text = "de ${formatarTempo(totalSegundos)} · " +
+                                        if (viewModel.emDescanso) "descanso" else "foco",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
 
                         if (viewModel.emDescanso) {
                             Text(
@@ -261,14 +280,15 @@ private fun TelaFocoAtiva(
     materia: String,
     textoRuido: String,
     tempoRestanteSegundos: Int,
+    progresso: Float,
     pausado: Boolean,
     onRetomar: () -> Unit,
     onEncerrar: () -> Unit,
     painelRuido: @Composable () -> Unit
 ) {
-    val corFundo = MaterialTheme.colorScheme.onBackground
-    val corTexto = MaterialTheme.colorScheme.background
-    val tempoFormatado = formatarTempo(tempoRestanteSegundos)
+    //cores fixas, o modo foco é sempre escuro
+    val corFundo = Color(0xFF0B141C)
+    val corTexto = Color(0xFFD6E4F0)
 
     Column(
         modifier = Modifier
@@ -292,17 +312,24 @@ private fun TelaFocoAtiva(
         }
 
         Text(
-            text = tempoFormatado,
-            style = MaterialTheme.typography.displayMedium,
-            fontWeight = FontWeight.Bold,
+            text = if (pausado) "FOCO PAUSADO" else "MODO FOCO ATIVO",
+            style = MaterialTheme.typography.labelLarge,
+            letterSpacing = 2.sp,
             color = corTexto
         )
 
-        Text(
-            text = if (pausado) "ESTADO: PAUSADO" else "ESTADO: FOCANDO",
-            style = MaterialTheme.typography.titleMedium,
-            color = corTexto
-        )
+        AnelTempo(
+            progresso = progresso,
+            corAnel = Color(0xFF8DA2B5),
+            corTrilho = Color(0xFF1E2C3A)
+        ) {
+            Text(
+                text = formatarTempo(tempoRestanteSegundos),
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold,
+                color = corTexto
+            )
+        }
 
         Text(
             text = if (pausado) {
@@ -335,11 +362,15 @@ private fun TelaFocoAtiva(
     }
 }
 
-// segundos -> HH : MM : SS
+// segundos -> MM:SS (ou H:MM:SS quando passa de 1 hora)
 private fun formatarTempo(totalSegundos: Int): String {
     val horas = totalSegundos / 3600
     val minutos = (totalSegundos % 3600) / 60
     val segundos = totalSegundos % 60
 
-    return "%02d : %02d : %02d".format(horas, minutos, segundos)
+    return if (horas > 0) {
+        "%d:%02d:%02d".format(horas, minutos, segundos)
+    } else {
+        "%02d:%02d".format(minutos, segundos)
+    }
 }
