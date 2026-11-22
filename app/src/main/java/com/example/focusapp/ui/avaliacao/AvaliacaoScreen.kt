@@ -49,7 +49,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.example.focusapp.ui.focus.FocusViewModel
 import com.example.focusapp.ui.ruido.PainelRuido
 
-private val FATORES = listOf("Silêncio", "Cansaço", "Celular", "Conforto", "Iluminação")
+val FATORES = listOf("Silêncio", "Cansaço", "Celular", "Conforto", "Iluminação")
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable

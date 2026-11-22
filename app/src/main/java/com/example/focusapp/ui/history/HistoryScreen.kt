@@ -53,6 +53,9 @@ fun HistoryScreen(
 
     val scope = rememberCoroutineScope()
 
+    //sessao que ta esperando confirmacao pra excluir
+    var paraExcluir by remember { mutableStateOf<FocusSession?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -117,15 +120,28 @@ fun HistoryScreen(
                             onNavigateToDetails(sessao.id)
                         },
 
-                        onDelete = {
-                            scope.launch {
-                                dao.excluir(sessao)
-                            }
-                        }
+                        onDelete = { paraExcluir = sessao }
                     )
                 }
             }
         }
+    }
+
+    paraExcluir?.let { alvo ->
+        AlertDialog(
+            onDismissRequest = { paraExcluir = null },
+            title = { Text("Excluir sessão?") },
+            text = { Text("A sessão de ${alvo.materia} será apagada e não dá pra desfazer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { dao.excluir(alvo) }
+                    paraExcluir = null
+                }) { Text("Excluir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { paraExcluir = null }) { Text("Cancelar") }
+            }
+        )
     }
 }
 

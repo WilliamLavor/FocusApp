@@ -1,8 +1,12 @@
 package com.example.focusapp.ui.details
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,12 +15,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.FocusSession
+import com.example.focusapp.ui.avaliacao.FATORES
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DetailScreen(
     sessionId: Int,
@@ -53,6 +58,12 @@ fun DetailScreen(
         mutableStateOf("")
     }
 
+    var estrelas by remember { mutableIntStateOf(0) }
+
+    val fatoresEscolhidos = remember { mutableStateListOf<String>() }
+
+    var confirmarExclusao by remember { mutableStateOf(false) }
+
     // Busca a sessão pelo ID
     LaunchedEffect(sessionId) {
 
@@ -66,6 +77,10 @@ fun DetailScreen(
 
         materia = encontrada?.materia ?: ""
         notas = encontrada?.notas ?: ""
+        estrelas = encontrada?.avaliacao ?: 0
+
+        fatoresEscolhidos.clear()
+        encontrada?.fatores?.split(",")?.filter { it.isNotBlank() }?.let { fatoresEscolhidos.addAll(it) }
 
         carregando = false
     }
@@ -131,6 +146,7 @@ fun DetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp),
 
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -184,6 +200,40 @@ fun DetailScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                // Editar avaliação
+                Text(
+                    text = "Avaliação",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+                    for (nota in 1..5) {
+                        IconButton(onClick = { estrelas = nota }) {
+                            Icon(
+                                imageVector = if (nota <= estrelas) Icons.Default.Star else Icons.Default.StarBorder,
+                                contentDescription = "$nota estrelas",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    for (fator in FATORES) {
+                        FilterChip(
+                            selected = fator in fatoresEscolhidos,
+                            onClick = {
+                                if (fator in fatoresEscolhidos) fatoresEscolhidos.remove(fator)
+                                else fatoresEscolhidos.add(fator)
+                            },
+                            label = { Text(fator) }
+                        )
+                    }
+                }
+
                 // Editar anotações
                 OutlinedTextField(
                     value = notas,
@@ -203,7 +253,9 @@ fun DetailScreen(
                             dao.atualizar(
                                 atual.copy(
                                     materia = materia.trim(),
-                                    notas = notas
+                                    notas = notas,
+                                    avaliacao = estrelas,
+                                    fatores = fatoresEscolhidos.joinToString(",")
                                 )
                             )
 
@@ -218,19 +270,32 @@ fun DetailScreen(
 
                 // Excluir sessão
                 TextButton(
-                    onClick = {
-                        scope.launch {
-
-                            dao.excluir(atual)
-
-                            onNavigateBack()
-                        }
-                    },
+                    onClick = { confirmarExclusao = true },
 
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Excluir sessão")
                 }
+            }
+
+            if (confirmarExclusao) {
+                AlertDialog(
+                    onDismissRequest = { confirmarExclusao = false },
+                    title = { Text("Excluir sessão?") },
+                    text = { Text("Não dá pra desfazer depois.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmarExclusao = false
+                            scope.launch {
+                                dao.excluir(atual)
+                                onNavigateBack()
+                            }
+                        }) { Text("Excluir") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmarExclusao = false }) { Text("Cancelar") }
+                    }
+                )
             }
         }
     }
