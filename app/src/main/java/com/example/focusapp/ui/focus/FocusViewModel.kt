@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.SystemClock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
@@ -13,6 +14,7 @@ import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.FocusSession
 import com.example.focusapp.sensor.MedidorRuido
 import com.example.focusapp.sensor.SensorVirado
+import com.example.focusapp.ui.ruido.LIMITE_BARULHENTO_DB
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -56,6 +58,17 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var ruidoDb by mutableIntStateOf(0)
         private set
+
+    // leituras de ruído da sessão (alimentam o gráfico)
+    val leituras = mutableStateListOf<Int>()
+    var mediaAtualDb by mutableIntStateOf(0)
+        private set
+    var picoDb by mutableIntStateOf(0)
+        private set
+    var minDb by mutableIntStateOf(0)
+        private set
+    var picosRuido by mutableIntStateOf(0)
+        private set
     var sessaoConcluida by mutableStateOf(false)
         private set
 
@@ -75,6 +88,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     private var restanteAoPausarMs = 0L     // quanto faltava ao pausar
     private var somaRuido = 0
     private var quantidadeMedicoes = 0
+    private var emPico = false
     private var cronometroJob: Job? = null
     private var descansoJob: Job? = null
     private var ruidoJob: Job? = null
@@ -175,6 +189,12 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         sessaoConcluida = false
         somaRuido = 0
         quantidadeMedicoes = 0
+        leituras.clear()
+        mediaAtualDb = 0
+        picoDb = 0
+        minDb = 0
+        picosRuido = 0
+        emPico = false
         focando = true
 
         iniciarCronometro()
@@ -239,6 +259,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
                     if (leitura > 0) {
                         somaRuido += leitura
                         quantidadeMedicoes++
+                        registrarLeitura(leitura)
                     }
                     delay(500)
                 }
@@ -246,6 +267,19 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
                 medidor.parar()
             }
         }
+    }
+
+    private fun registrarLeitura(leitura: Int) {
+        leituras.add(leitura)
+        mediaAtualDb = mediaRuido()
+
+        if (leitura > picoDb) picoDb = leitura
+        if (minDb == 0 || leitura < minDb) minDb = leitura
+
+        // conta um pico só quando o ruído passa do limite (não a cada leitura)
+        val barulhento = leitura >= LIMITE_BARULHENTO_DB
+        if (barulhento && !emPico) picosRuido++
+        emPico = barulhento
     }
 
     private fun mediaRuido(): Int =
@@ -257,7 +291,9 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
             data = inicioSessao,
             duracaoMinutos = focoMinutos,
             status = "CONCLUIDO",
-            mediaDb = mediaRuido()
+            mediaDb = mediaRuido(),
+            picoDb = picoDb,
+            minDb = minDb
         )
 
         encerrarEstado()
@@ -280,7 +316,9 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
                 data = inicioSessao,
                 duracaoMinutos = minutos,
                 status = "ABANDONADO",
-                mediaDb = mediaRuido()
+                mediaDb = mediaRuido(),
+                picoDb = picoDb,
+                minDb = minDb
             )
             salvar(sessao)
         }

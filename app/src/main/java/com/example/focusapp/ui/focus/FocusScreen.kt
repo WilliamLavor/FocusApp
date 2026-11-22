@@ -7,6 +7,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.example.focusapp.ui.ruido.PainelRuido
+import com.example.focusapp.ui.ruido.classificarRuido
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,11 +94,7 @@ fun FocusScreen(
 
     val ruidoDb = viewModel.ruidoDb
 
-    val descricaoRuido = when {
-        ruidoDb < 40 -> "Silencioso"
-        ruidoDb < 60 -> "Moderado"
-        else -> "Barulhento"
-    }
+    val descricaoRuido = classificarRuido(ruidoDb)
 
     val textoRuido = when {
         !temPermissao -> "Microfone sem permissão"
@@ -112,7 +112,20 @@ fun FocusScreen(
             tempoRestanteSegundos = viewModel.tempoRestanteSegundos,
             pausado = viewModel.pausado,
             onRetomar = viewModel::retomarFoco,
-            onEncerrar = viewModel::encerrarSessao
+            onEncerrar = viewModel::encerrarSessao,
+            painelRuido = {
+                if (viewModel.leituras.isNotEmpty()) {
+                    PainelRuido(
+                        leituras = viewModel.leituras,
+                        atual = viewModel.ruidoDb,
+                        media = viewModel.mediaAtualDb,
+                        pico = viewModel.picoDb,
+                        minimo = viewModel.minDb,
+                        picos = viewModel.picosRuido,
+                        rotuloAtual = "Última leitura"
+                    )
+                }
+            }
         )
 
     } else {
@@ -243,7 +256,8 @@ private fun TelaFocoAtiva(
     tempoRestanteSegundos: Int,
     pausado: Boolean,
     onRetomar: () -> Unit,
-    onEncerrar: () -> Unit
+    onEncerrar: () -> Unit,
+    painelRuido: @Composable () -> Unit
 ) {
     val corFundo = MaterialTheme.colorScheme.onBackground
     val corTexto = MaterialTheme.colorScheme.background
@@ -253,6 +267,7 @@ private fun TelaFocoAtiva(
         modifier = Modifier
             .fillMaxSize()
             .background(corFundo)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(
@@ -307,6 +322,8 @@ private fun TelaFocoAtiva(
             ) {
                 Text("Encerrar sessão")
             }
+
+            painelRuido()
         }
     }
 }

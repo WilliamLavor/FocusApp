@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.focusapp.ui.focus.FocusViewModel
+import com.example.focusapp.ui.ruido.PainelRuido
 
 private val FATORES = listOf("Silêncio", "Cansaço", "Celular", "Conforto", "Iluminação")
 
@@ -186,6 +187,18 @@ fun AvaliacaoScreen(
                         label = { Text(fator) }
                     )
                 }
+            }
+
+            if (viewModel.leituras.isNotEmpty()) {
+                PainelRuido(
+                    leituras = viewModel.leituras,
+                    atual = viewModel.ruidoDb,
+                    media = viewModel.mediaAtualDb,
+                    pico = viewModel.picoDb,
+                    minimo = viewModel.minDb,
+                    picos = viewModel.picosRuido,
+                    rotuloAtual = "Última leitura"
+                )
             }
 
             Button(

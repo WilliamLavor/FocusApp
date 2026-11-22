@@ -150,6 +150,10 @@ fun DetailScreen(
 
                         Text("Média acústica: ${atual.mediaDb} dB")
 
+                        if (atual.picoDb > 0) {
+                            Text("Pico: ${atual.picoDb} dB • Mínimo: ${atual.minDb} dB")
+                        }
+
                         if (atual.avaliacao > 0) {
                             Text("Avaliação: ${atual.avaliacao}/5")
                         }
