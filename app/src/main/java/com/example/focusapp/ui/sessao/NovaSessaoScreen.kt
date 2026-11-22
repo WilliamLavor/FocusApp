@@ -11,16 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -32,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,17 +44,14 @@ fun NovaSessaoScreen(
     viewModel: FocusViewModel,
     locais: List<Local>,
     onIniciar: () -> Unit,
-    onNavigateToHistory: () -> Unit,
-    onNavigateToMetricas: () -> Unit,
-    onGerenciarLocais: () -> Unit,
-    escuro: Boolean,
-    onAlternarTema: () -> Unit
+    onGerenciarLocais: () -> Unit
 ) {
     // campos do formulário
-    var materia by remember { mutableStateOf(viewModel.materia) }
+    //matéria e local sobrevivem à troca de aba
+    var materia by rememberSaveable { mutableStateOf(viewModel.materia) }
     var focoTexto by remember { mutableStateOf(viewModel.focoMinutos.toString()) }
     var descansoTexto by remember { mutableStateOf(viewModel.descansoMinutos.toString()) }
-    var localId by remember { mutableStateOf(viewModel.localId) }
+    var localId by rememberSaveable { mutableStateOf(viewModel.localId) }
 
     val foco = focoTexto.toIntOrNull()
     val descanso = descansoTexto.toIntOrNull()
@@ -72,28 +63,6 @@ fun NovaSessaoScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Nova sessão") },
-                actions = {
-                    IconButton(onClick = onAlternarTema) {
-                        Icon(
-                            imageVector = if (escuro) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = if (escuro) "Tema claro" else "Tema escuro"
-                        )
-                    }
-
-                    IconButton(onClick = onNavigateToMetricas) {
-                        Icon(
-                            imageVector = Icons.Default.BarChart,
-                            contentDescription = "Ver Métricas"
-                        )
-                    }
-
-                    IconButton(onClick = onNavigateToHistory) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "Ver Histórico"
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer

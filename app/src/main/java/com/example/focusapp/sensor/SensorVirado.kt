@@ -24,7 +24,7 @@ class SensorVirado(context: Context) : SensorEventListener {
     private var registrado = false
     private var viradoParaBaixo = false
 
-    // Momento em que o celular começou a permanecer na posição desejada.
+    //desde quando ta virado
     private var inicioPosicaoNanos: Long? = null
 
     fun iniciar() {
@@ -56,14 +56,14 @@ class SensorVirado(context: Context) : SensorEventListener {
         val y = event.values[1]
         val z = event.values[2]
 
-        // Calcula a intensidade total da aceleração.
+        //força total da aceleração
         val intensidade = sqrt(x * x + y * y + z * z)
 
-        // Verifica se o aparelho está praticamente em repouso.
+        //parado mesmo?
         val aceleracaoEstavel =
             abs(intensidade - SensorManager.GRAVITY_EARTH) < 1.0f
 
-        // Para entrar: exige uma posição bem próxima da tela para baixo.
+        //pra entrar tem que estar bem de cabeça pra baixo
         if (!viradoParaBaixo) {
 
             val orientacaoValida = z <= -9.0f && aceleracaoEstavel
@@ -77,7 +77,7 @@ class SensorVirado(context: Context) : SensorEventListener {
                 val tempoDecorrido =
                     event.timestamp - inicioPosicaoNanos!!
 
-                // Só ativa depois de 2 segundos na posição desejada.
+                //só vale depois de 2s assim
                 if (tempoDecorrido >= TEMPO_ESTAVEL_NANOS) {
 
                     viradoParaBaixo = true
@@ -87,13 +87,12 @@ class SensorVirado(context: Context) : SensorEventListener {
                 }
 
             } else {
-                // Se sair da posição antes dos 2 segundos, reinicia a contagem.
                 inicioPosicaoNanos = null
             }
 
         } else {
 
-            // Limite diferente para evitar oscilações na detecção.
+            //limite mais folgado pra sair, senão fica oscilando
             if (z > -8.5f) {
 
                 viradoParaBaixo = false

@@ -34,7 +34,6 @@ fun HistoryScreen(
         AppDatabase.getDatabase(context).focusDao()
     }
 
-    // Observa as alterações no banco
     val sessoesFlow = remember {
         dao.observarTodas()
     }
@@ -89,7 +88,7 @@ fun HistoryScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // Caso não existam sessões
+            //lista vazia
             if (sessoes.isEmpty()) {
 
                 item {
@@ -106,7 +105,6 @@ fun HistoryScreen(
 
             } else {
 
-                // Exibe cada sessão do banco
                 items(
                     items = sessoes,
                     key = { it.id }

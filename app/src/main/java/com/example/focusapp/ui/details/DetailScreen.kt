@@ -37,7 +37,6 @@ fun DetailScreen(
 
     val scope = rememberCoroutineScope()
 
-    // Sessão encontrada no banco
     var sessao by remember {
         mutableStateOf<FocusSession?>(null)
     }
@@ -50,7 +49,6 @@ fun DetailScreen(
         mutableStateOf(true)
     }
 
-    // Campos editáveis
     var materia by remember {
         mutableStateOf("")
     }
@@ -65,7 +63,6 @@ fun DetailScreen(
 
     var confirmarExclusao by remember { mutableStateOf(false) }
 
-    // Busca a sessão pelo ID
     LaunchedEffect(sessionId) {
 
         val encontrada = dao.buscarPorId(sessionId)
@@ -153,7 +150,6 @@ fun DetailScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
-                // Informações da sessão
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -191,7 +187,6 @@ fun DetailScreen(
                     }
                 }
 
-                // Editar matéria
                 OutlinedTextField(
                     value = materia,
                     onValueChange = { materia = it },
@@ -201,7 +196,6 @@ fun DetailScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Editar avaliação
                 Text(
                     text = "Avaliação",
                     style = MaterialTheme.typography.titleMedium
@@ -235,7 +229,6 @@ fun DetailScreen(
                     }
                 }
 
-                // Editar anotações
                 OutlinedTextField(
                     value = notas,
                     onValueChange = { notas = it },
@@ -246,7 +239,6 @@ fun DetailScreen(
                     minLines = 4
                 )
 
-                // Salvar alterações
                 Button(
                     onClick = {
                         scope.launch {
@@ -269,7 +261,6 @@ fun DetailScreen(
                     Text("Salvar alterações")
                 }
 
-                // Excluir sessão
                 TextButton(
                     onClick = { confirmarExclusao = true },
 

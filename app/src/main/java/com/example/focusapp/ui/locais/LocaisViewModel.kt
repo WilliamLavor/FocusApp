@@ -8,7 +8,7 @@ import com.example.focusapp.data.Local
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-// CRUD dos locais
+// cadastro dos locais
 class LocaisViewModel(application: Application) : AndroidViewModel(application) {
 
     private val banco = AppDatabase.getDatabase(application)

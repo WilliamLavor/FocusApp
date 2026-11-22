@@ -67,8 +67,29 @@ class MetricasTest {
     fun localApagadoViraSemLocal() {
         val resultado = calcularMetricas(listOf(sessao(99, 25)), listOf(biblioteca))
 
-        assertEquals("Sem local", resultado[0].nome)
-        assertEquals(false, resultado[0].temLocal)
+        val semLocal = resultado.first { !it.temLocal }
+        assertEquals("Sem local", semLocal.nome)
+        assertEquals(25, semLocal.minutos)
+    }
+
+    @Test
+    fun localSemSessoesTambemAparece() {
+        val resultado = calcularMetricas(listOf(sessao(1, 25)), listOf(biblioteca, quarto))
+
+        assertEquals(2, resultado.size)
+
+        val vazio = resultado.first { it.nome == "Quarto" }
+        assertEquals(0, vazio.sessoes)
+        assertEquals(0, vazio.minutos)
+        assertNull(vazio.qualidade)
+        assertNull(vazio.ultimaSessao)
+    }
+
+    @Test
+    fun melhorLocalIgnoraLocalSemSessoes() {
+        val metricas = calcularMetricas(listOf(sessao(1, 25)), listOf(biblioteca, quarto))
+
+        assertEquals("Biblioteca", melhorLocal(metricas)?.nome)
     }
 
     @Test

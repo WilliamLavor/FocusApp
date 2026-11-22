@@ -80,10 +80,10 @@ fun FocusScreen(
         }
     }
 
-    // Impede o botão voltar durante o foco
+    //voltar não sai do foco
     BackHandler(enabled = viewModel.focando) { }
 
-    // Mantém a tela ligada durante o foco
+    //tela não apaga no foco
     val view = LocalView.current
 
     DisposableEffect(viewModel.focando) {
@@ -111,7 +111,6 @@ fun FocusScreen(
     ).coerceAtLeast(1)
     val progresso = viewModel.tempoRestanteSegundos / totalSegundos.toFloat()
 
-    // Exibe a tela adequada
     if (viewModel.focando) {
 
         TelaFocoAtiva(
@@ -276,7 +275,7 @@ fun FocusScreen(
     }
 }
 
-// Tela de foco
+// tela do timer rodando
 @Composable
 private fun TelaFocoAtiva(
     materia: String,

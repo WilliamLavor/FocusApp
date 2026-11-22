@@ -14,6 +14,7 @@ import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.Local
 import com.example.focusapp.data.FocusSession
 import com.example.focusapp.data.StatusSessao
+import com.example.focusapp.ui.ajustes.Preferencias
 import com.example.focusapp.sensor.MedidorRuido
 import com.example.focusapp.sensor.SensorVirado
 import com.example.focusapp.ui.ruido.LIMITE_BARULHENTO_DB
@@ -100,6 +101,11 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     private var ruidoJob: Job? = null
 
     init {
+        // tempos padrão vêm dos Ajustes
+        focoMinutos = Preferencias.foco(application)
+        descansoMinutos = Preferencias.descanso(application)
+        tempoRestanteSegundos = focoMinutos * 60
+
         // virou: inicia ou retoma. desvirou: pausa
         sensorVirado.aoMudar = { virado ->
             if (virado) {
@@ -122,6 +128,15 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         focoMinutos = foco.coerceIn(FOCO_MIN_MINUTOS, FOCO_MAX_MINUTOS)
         descansoMinutos = descanso.coerceIn(DESCANSO_MIN_MINUTOS, DESCANSO_MAX_MINUTOS)
         sessaoConcluida = false
+        tempoRestanteSegundos = focoMinutos * 60
+    }
+
+    // chamado quando muda o padrão nos Ajustes
+    fun aplicarPadroes(foco: Int, descanso: Int) {
+        if (focando || emDescanso) return
+
+        focoMinutos = foco.coerceIn(FOCO_MIN_MINUTOS, FOCO_MAX_MINUTOS)
+        descansoMinutos = descanso.coerceIn(DESCANSO_MIN_MINUTOS, DESCANSO_MAX_MINUTOS)
         tempoRestanteSegundos = focoMinutos * 60
     }
 
