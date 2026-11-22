@@ -2,6 +2,7 @@ package com.example.focusapp.ui.metricas
 
 import com.example.focusapp.data.FocusSession
 import com.example.focusapp.data.Local
+import com.example.focusapp.data.StatusSessao
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -20,7 +21,7 @@ class MetricasTest {
         materia = "Teste",
         data = 0L,
         duracaoMinutos = minutos,
-        status = "CONCLUIDO",
+        status = StatusSessao.CONCLUIDO.name,
         mediaDb = db,
         avaliacao = nota,
         localId = local

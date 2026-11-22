@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.FocusSession
+import com.example.focusapp.data.StatusSessao
 import com.example.focusapp.ui.avaliacao.FATORES
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -168,7 +169,7 @@ fun DetailScreen(
 
                         Text("Data: $dataFormatada")
 
-                        Text("Status: ${atual.status}")
+                        Text("Status: ${StatusSessao.rotuloDe(atual.status)}")
 
                         Text("Duração: ${atual.duracaoMinutos} minutos")
 

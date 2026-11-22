@@ -13,6 +13,7 @@ import com.example.focusapp.alerta.AlertaFim
 import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.Local
 import com.example.focusapp.data.FocusSession
+import com.example.focusapp.data.StatusSessao
 import com.example.focusapp.sensor.MedidorRuido
 import com.example.focusapp.sensor.SensorVirado
 import com.example.focusapp.ui.ruido.LIMITE_BARULHENTO_DB
@@ -297,7 +298,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
             materia = materia.ifBlank { "Estudo livre" },
             data = inicioSessao,
             duracaoMinutos = focoMinutos,
-            status = "CONCLUIDO",
+            status = StatusSessao.CONCLUIDO.name,
             mediaDb = mediaRuido(),
             picoDb = picoDb,
             minDb = minDb,
@@ -323,7 +324,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
                 materia = materia.ifBlank { "Estudo livre" },
                 data = inicioSessao,
                 duracaoMinutos = minutos,
-                status = "ABANDONADO",
+                status = StatusSessao.ABANDONADO.name,
                 mediaDb = mediaRuido(),
                 picoDb = picoDb,
                 minDb = minDb,

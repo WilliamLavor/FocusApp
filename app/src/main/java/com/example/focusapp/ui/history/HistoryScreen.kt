@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.FocusSession
+import com.example.focusapp.data.StatusSessao
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -182,7 +183,7 @@ private fun SessionCard(
                 )
 
                 Text(
-                    text = sessao.status
+                    text = StatusSessao.rotuloDe(sessao.status)
                 )
 
                 Text(
