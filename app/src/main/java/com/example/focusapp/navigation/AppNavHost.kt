@@ -18,6 +18,8 @@ import com.example.focusapp.ui.focus.FocusViewModel
 import com.example.focusapp.ui.history.HistoryScreen
 import com.example.focusapp.ui.locais.LocaisScreen
 import com.example.focusapp.ui.locais.LocaisViewModel
+import com.example.focusapp.ui.metricas.MetricasScreen
+import com.example.focusapp.ui.metricas.MetricasViewModel
 import com.example.focusapp.ui.sessao.NovaSessaoScreen
 
 @Composable
@@ -53,6 +55,9 @@ fun AppNavHost(
                 onGerenciarLocais = {
                     navController.navigate(NavRoutes.Locais.route)
                 },
+                onNavigateToMetricas = {
+                    navController.navigate(NavRoutes.Metricas.route)
+                },
                 onIniciar = {
                     navController.navigate(NavRoutes.Focus.route)
                 },
@@ -81,6 +86,20 @@ fun AppNavHost(
                 locais = locais,
                 onSalvar = locaisViewModel::salvar,
                 onExcluir = locaisViewModel::excluir,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Tela de Métricas por local
+        composable(route = NavRoutes.Metricas.route) {
+            val metricasViewModel: MetricasViewModel = viewModel()
+            val sessoes by metricasViewModel.sessoes.collectAsState(initial = emptyList())
+
+            MetricasScreen(
+                sessoes = sessoes,
+                locais = locais,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

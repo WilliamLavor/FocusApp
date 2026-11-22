@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +49,7 @@ fun NovaSessaoScreen(
     locais: List<Local>,
     onIniciar: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToMetricas: () -> Unit,
     onGerenciarLocais: () -> Unit
 ) {
     // campos do formulário
@@ -67,6 +69,13 @@ fun NovaSessaoScreen(
             TopAppBar(
                 title = { Text("Nova sessão") },
                 actions = {
+                    IconButton(onClick = onNavigateToMetricas) {
+                        Icon(
+                            imageVector = Icons.Default.BarChart,
+                            contentDescription = "Ver Métricas"
+                        )
+                    }
+
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(
                             imageVector = Icons.Default.History,

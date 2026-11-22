@@ -8,6 +8,8 @@ sealed class NavRoutes(val route: String) {
 
     data object Locais : NavRoutes("locais")
 
+    data object Metricas : NavRoutes("metricas")
+
     data object Focus : NavRoutes("focus")
 
     data object History : NavRoutes("history")
