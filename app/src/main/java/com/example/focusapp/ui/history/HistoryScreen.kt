@@ -42,6 +42,15 @@ fun HistoryScreen(
         initial = emptyList()
     )
 
+    // nomes dos locais, pra mostrar em cada sessão
+    val locaisFlow = remember {
+        AppDatabase.getDatabase(context).localDao().observarTodos()
+    }
+
+    val locais by locaisFlow.collectAsState(initial = emptyList())
+
+    val nomesLocais = locais.associate { it.id to it.nome }
+
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -102,6 +111,8 @@ fun HistoryScreen(
                     SessionCard(
                         sessao = sessao,
 
+                        nomeLocal = sessao.localId?.let { nomesLocais[it] },
+
                         onClick = {
                             onNavigateToDetails(sessao.id)
                         },
@@ -121,6 +132,7 @@ fun HistoryScreen(
 @Composable
 private fun SessionCard(
     sessao: FocusSession,
+    nomeLocal: String?,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -164,6 +176,12 @@ private fun SessionCard(
                 Text(
                     text = "${sessao.duracaoMinutos} min • Média: ${sessao.mediaDb} dB"
                 )
+
+                if (nomeLocal != null) {
+                    Text(
+                        text = "Local: $nomeLocal"
+                    )
+                }
 
                 if (sessao.avaliacao > 0) {
                     Text(

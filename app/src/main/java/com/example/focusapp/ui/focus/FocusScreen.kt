@@ -172,6 +172,13 @@ fun FocusScreen(
                     style = MaterialTheme.typography.titleLarge
                 )
 
+                if (viewModel.localNome.isNotBlank()) {
+                    Text(
+                        text = "Local: ${viewModel.localNome}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
                 ElevatedCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {

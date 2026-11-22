@@ -33,4 +33,8 @@ interface FocusDao {
     //  EXCLUIR UMA SESSÂO
     @Delete
     suspend fun excluir(sessao: FocusSession)
+
+    //  TIRAR O LOCAL DAS SESSÕES QUE USAVAM ELE
+    @Query("UPDATE sessoes SET localId = NULL WHERE localId = :localId")
+    suspend fun removerLocal(localId: Int)
 }

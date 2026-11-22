@@ -2,6 +2,8 @@ package com.example.focusapp.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -14,6 +16,8 @@ import com.example.focusapp.ui.details.DetailScreen
 import com.example.focusapp.ui.focus.FocusScreen
 import com.example.focusapp.ui.focus.FocusViewModel
 import com.example.focusapp.ui.history.HistoryScreen
+import com.example.focusapp.ui.locais.LocaisScreen
+import com.example.focusapp.ui.locais.LocaisViewModel
 import com.example.focusapp.ui.sessao.NovaSessaoScreen
 
 @Composable
@@ -23,6 +27,8 @@ fun AppNavHost(
 ) {
     // mesmo ViewModel nas duas telas (Nova sessão e timer)
     val focusViewModel: FocusViewModel = viewModel()
+    val locaisViewModel: LocaisViewModel = viewModel()
+    val locais by locaisViewModel.locais.collectAsState(initial = emptyList())
 
     // quando o foco termina, abre a avaliação
     LaunchedEffect(focusViewModel.aguardandoAvaliacao) {
@@ -43,6 +49,10 @@ fun AppNavHost(
         composable(route = NavRoutes.NovaSessao.route) {
             NovaSessaoScreen(
                 viewModel = focusViewModel,
+                locais = locais,
+                onGerenciarLocais = {
+                    navController.navigate(NavRoutes.Locais.route)
+                },
                 onIniciar = {
                     navController.navigate(NavRoutes.Focus.route)
                 },
@@ -59,6 +69,18 @@ fun AppNavHost(
                 onNavigateToHistory = {
                     navController.navigate(NavRoutes.History.route)
                 },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Tela de Meus locais
+        composable(route = NavRoutes.Locais.route) {
+            LocaisScreen(
+                locais = locais,
+                onSalvar = locaisViewModel::salvar,
+                onExcluir = locaisViewModel::excluir,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

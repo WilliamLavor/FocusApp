@@ -11,6 +11,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.focusapp.alerta.AlertaFim
 import com.example.focusapp.data.AppDatabase
+import com.example.focusapp.data.Local
 import com.example.focusapp.data.FocusSession
 import com.example.focusapp.sensor.MedidorRuido
 import com.example.focusapp.sensor.SensorVirado
@@ -45,6 +46,10 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     var focoMinutos by mutableIntStateOf(FOCO_PADRAO_MINUTOS)
         private set
     var descansoMinutos by mutableIntStateOf(DESCANSO_PADRAO_MINUTOS)
+        private set
+    var localId by mutableStateOf<Int?>(null)
+        private set
+    var localNome by mutableStateOf("")
         private set
 
     // estado que a tela observa
@@ -106,11 +111,13 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
     // ações da tela
 
-    fun configurarSessao(novaMateria: String, foco: Int, descanso: Int) {
+    fun configurarSessao(novaMateria: String, foco: Int, descanso: Int, local: Local?) {
         if (focando) return
 
         encerrarDescanso()
         materia = novaMateria.trim()
+        localId = local?.id
+        localNome = local?.nome ?: ""
         focoMinutos = foco.coerceIn(FOCO_MIN_MINUTOS, FOCO_MAX_MINUTOS)
         descansoMinutos = descanso.coerceIn(DESCANSO_MIN_MINUTOS, DESCANSO_MAX_MINUTOS)
         sessaoConcluida = false
@@ -293,7 +300,8 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
             status = "CONCLUIDO",
             mediaDb = mediaRuido(),
             picoDb = picoDb,
-            minDb = minDb
+            minDb = minDb,
+            localId = localId
         )
 
         encerrarEstado()
@@ -318,7 +326,8 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
                 status = "ABANDONADO",
                 mediaDb = mediaRuido(),
                 picoDb = picoDb,
-                minDb = minDb
+                minDb = minDb,
+                localId = localId
             )
             salvar(sessao)
         }
