@@ -209,8 +209,7 @@ fun FocusScreen(
                                 )
 
                                 Text(
-                                    text = "de ${formatarTempo(totalSegundos)} · " +
-                                        if (viewModel.emDescanso) "descanso" else "foco",
+                                    text = "de ${formatarTempo(totalSegundos)}",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -223,7 +222,7 @@ fun FocusScreen(
                                 color = MaterialTheme.colorScheme.secondary
                             )
 
-                            Text("Aproveite para descansar. Quando o descanso acabar, vire o celular para o próximo foco.")
+                            Text("Quando acabar, vire o celular para o próximo foco.")
 
                             OutlinedButton(onClick = viewModel::pularDescanso) {
                                 Text("Pular descanso")
@@ -245,26 +244,29 @@ fun FocusScreen(
                             )
                         }
 
-                        HorizontalDivider()
+                        // no descanso não tem medição, então some essa parte
+                        if (!viewModel.emDescanso) {
+                            HorizontalDivider()
 
-                        Text(textoRuido)
+                            Text(textoRuido)
 
-                        if (!temPermissao) {
-                            OutlinedButton(
-                                onClick = {
-                                    pedirPermissao.launch(
-                                        Manifest.permission.RECORD_AUDIO
-                                    )
+                            if (!temPermissao) {
+                                OutlinedButton(
+                                    onClick = {
+                                        pedirPermissao.launch(
+                                            Manifest.permission.RECORD_AUDIO
+                                        )
+                                    }
+                                ) {
+                                    Text("Permitir microfone")
                                 }
-                            ) {
-                                Text("Permitir microfone")
                             }
                         }
                     }
                 }
                 if (viewModel.sessaoConcluida) {
                     Text(
-                        text = "Sessão concluída! Parabéns pelos ${viewModel.focoMinutos} minutos de foco.",
+                        text = "Sessão concluída! Foco de ${viewModel.focoMinutos} min completo.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -286,9 +288,10 @@ private fun TelaFocoAtiva(
     onEncerrar: () -> Unit,
     painelRuido: @Composable () -> Unit
 ) {
-    //cores fixas, o modo foco é sempre escuro
-    val corFundo = Color(0xFF0B141C)
-    val corTexto = Color(0xFFD6E4F0)
+    //cores fixas: o modo foco é azul bem escuro com laranja (o tema escuro é só azul)
+    val corFundo = Color(0xFF070E18)
+    val corTexto = Color(0xFFF2E6D4)
+    val corDestaque = Color(0xFFF0B866)
 
     Column(
         modifier = Modifier
@@ -315,13 +318,13 @@ private fun TelaFocoAtiva(
             text = if (pausado) "FOCO PAUSADO" else "MODO FOCO ATIVO",
             style = MaterialTheme.typography.labelLarge,
             letterSpacing = 2.sp,
-            color = corTexto
+            color = corDestaque
         )
 
         AnelTempo(
             progresso = progresso,
-            corAnel = Color(0xFF8DA2B5),
-            corTrilho = Color(0xFF1E2C3A)
+            corAnel = corDestaque,
+            corTrilho = Color(0xFF3A2D1A)
         ) {
             Text(
                 text = formatarTempo(tempoRestanteSegundos),
@@ -346,7 +349,13 @@ private fun TelaFocoAtiva(
         )
 
         if (pausado) {
-            Button(onClick = onRetomar) {
+            Button(
+                onClick = onRetomar,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = corDestaque,
+                    contentColor = Color(0xFF3A2400)
+                )
+            ) {
                 Text("Retomar")
             }
 
@@ -357,7 +366,10 @@ private fun TelaFocoAtiva(
                 Text("Encerrar sessão")
             }
 
-            painelRuido()
+            // sem isso o título e o aviso do painel saem pretos no fundo escuro
+            CompositionLocalProvider(LocalContentColor provides corTexto) {
+                painelRuido()
+            }
         }
     }
 }

@@ -13,7 +13,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -50,7 +52,9 @@ fun NovaSessaoScreen(
     onIniciar: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToMetricas: () -> Unit,
-    onGerenciarLocais: () -> Unit
+    onGerenciarLocais: () -> Unit,
+    escuro: Boolean,
+    onAlternarTema: () -> Unit
 ) {
     // campos do formulário
     var materia by remember { mutableStateOf(viewModel.materia) }
@@ -69,6 +73,13 @@ fun NovaSessaoScreen(
             TopAppBar(
                 title = { Text("Nova sessão") },
                 actions = {
+                    IconButton(onClick = onAlternarTema) {
+                        Icon(
+                            imageVector = if (escuro) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = if (escuro) "Tema claro" else "Tema escuro"
+                        )
+                    }
+
                     IconButton(onClick = onNavigateToMetricas) {
                         Icon(
                             imageVector = Icons.Default.BarChart,

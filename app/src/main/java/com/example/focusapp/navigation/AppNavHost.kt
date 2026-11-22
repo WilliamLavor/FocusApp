@@ -25,6 +25,8 @@ import com.example.focusapp.ui.sessao.NovaSessaoScreen
 @Composable
 fun AppNavHost(
     navController: NavHostController,
+    escuro: Boolean,
+    onAlternarTema: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     //mesmo ViewModel nas duas telas
@@ -52,6 +54,8 @@ fun AppNavHost(
             NovaSessaoScreen(
                 viewModel = focusViewModel,
                 locais = locais,
+                escuro = escuro,
+                onAlternarTema = onAlternarTema,
                 onGerenciarLocais = {
                     navController.navigate(NavRoutes.Locais.route)
                 },
