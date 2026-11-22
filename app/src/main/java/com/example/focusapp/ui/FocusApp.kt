@@ -5,7 +5,14 @@ import androidx.navigation.compose.rememberNavController
 import com.example.focusapp.navigation.AppNavHost
 
 @Composable
-fun FocusApp() {
+fun FocusApp(
+    escuro: Boolean,
+    onAlternarTema: () -> Unit
+) {
     val navController = rememberNavController()
-    AppNavHost(navController = navController)
+    AppNavHost(
+        navController = navController,
+        escuro = escuro,
+        onAlternarTema = onAlternarTema
+    )
 }

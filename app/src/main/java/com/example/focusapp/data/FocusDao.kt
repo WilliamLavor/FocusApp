@@ -16,6 +16,10 @@ interface FocusDao {
     fun observarTodas(): Flow<List<FocusSession>>
 
 
+    //  SESSÕES A PARTIR DE UMA DATA (PARA AS MÉTRICAS)
+    @Query("SELECT * FROM sessoes WHERE data >= :desde ORDER BY data DESC")
+    fun observarDesde(desde: Long): Flow<List<FocusSession>>
+
     //  BUSCAR UMA SESSÂO PELO ID
     @Query("SELECT * FROM sessoes WHERE id = :id")
     suspend fun buscarPorId(id: Int): FocusSession?
@@ -33,4 +37,8 @@ interface FocusDao {
     //  EXCLUIR UMA SESSÂO
     @Delete
     suspend fun excluir(sessao: FocusSession)
+
+    //  TIRAR O LOCAL DAS SESSÕES QUE USAVAM ELE
+    @Query("UPDATE sessoes SET localId = NULL WHERE localId = :localId")
+    suspend fun removerLocal(localId: Int)
 }

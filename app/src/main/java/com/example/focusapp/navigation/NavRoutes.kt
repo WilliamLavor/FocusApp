@@ -2,6 +2,14 @@ package com.example.focusapp.navigation
 
 sealed class NavRoutes(val route: String) {
 
+    data object NovaSessao : NavRoutes("nova_sessao")
+
+    data object Avaliacao : NavRoutes("avaliacao")
+
+    data object Locais : NavRoutes("locais")
+
+    data object Metricas : NavRoutes("metricas")
+
     data object Focus : NavRoutes("focus")
 
     data object History : NavRoutes("history")

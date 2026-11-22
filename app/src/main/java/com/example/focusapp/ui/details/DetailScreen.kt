@@ -36,6 +36,10 @@ fun DetailScreen(
         mutableStateOf<FocusSession?>(null)
     }
 
+    var nomeLocal by remember {
+        mutableStateOf<String?>(null)
+    }
+
     var carregando by remember {
         mutableStateOf(true)
     }
@@ -55,6 +59,10 @@ fun DetailScreen(
         val encontrada = dao.buscarPorId(sessionId)
 
         sessao = encontrada
+
+        nomeLocal = encontrada?.localId?.let { id ->
+            AppDatabase.getDatabase(context).localDao().buscarPorId(id)?.nome
+        }
 
         materia = encontrada?.materia ?: ""
         notas = encontrada?.notas ?: ""
@@ -149,6 +157,20 @@ fun DetailScreen(
                         Text("Duração: ${atual.duracaoMinutos} minutos")
 
                         Text("Média acústica: ${atual.mediaDb} dB")
+
+                        nomeLocal?.let { Text("Local: $it") }
+
+                        if (atual.picoDb > 0) {
+                            Text("Pico: ${atual.picoDb} dB • Mínimo: ${atual.minDb} dB")
+                        }
+
+                        if (atual.avaliacao > 0) {
+                            Text("Avaliação: ${atual.avaliacao}/5")
+                        }
+
+                        if (atual.fatores.isNotBlank()) {
+                            Text("Influenciou: ${atual.fatores.replace(",", ", ")}")
+                        }
                     }
                 }
 

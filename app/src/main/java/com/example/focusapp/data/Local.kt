@@ -3,7 +3,7 @@ package com.example.focusapp.data
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
 
-// Lugar onde o usuário costuma estudar (Biblioteca, Quarto, Café...).
+// onde a pessoa estuda (biblioteca, quarto...)
 @Entity(tableName = "locais")
 data class Local(
 
