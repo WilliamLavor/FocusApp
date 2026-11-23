@@ -16,6 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -142,11 +146,15 @@ fun AppNavHost(
             //métricas
             composable(route = NavRoutes.Metricas.route) {
                 val metricasViewModel: MetricasViewModel = viewModel()
-                val sessoes by metricasViewModel.sessoes.collectAsState(initial = emptyList())
+                var dias by rememberSaveable { mutableIntStateOf(30) }
+                val sessoesFlow = remember(dias) { metricasViewModel.sessoes(dias) }
+                val sessoes by sessoesFlow.collectAsState(initial = emptyList())
 
                 MetricasScreen(
                     sessoes = sessoes,
-                    locais = locais
+                    locais = locais,
+                    dias = dias,
+                    onMudarDias = { dias = it }
                 )
             }
 

@@ -119,6 +119,11 @@ fun FocusScreen(
             tempoRestanteSegundos = viewModel.tempoRestanteSegundos,
             progresso = progresso,
             pausado = viewModel.pausado,
+            rotuloSessao = if (viewModel.totalSessoes > 1) {
+                "Sessão ${viewModel.sessaoAtual} de ${viewModel.totalSessoes}"
+            } else {
+                null
+            },
             onRetomar = viewModel::retomarFoco,
             onEncerrar = viewModel::encerrarSessao,
             painelRuido = {
@@ -187,6 +192,13 @@ fun FocusScreen(
                     )
                 }
 
+                if (viewModel.estudoAtivo && viewModel.totalSessoes > 1) {
+                    Text(
+                        text = "Próxima: sessão ${viewModel.sessaoAtual} de ${viewModel.totalSessoes}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
                 ElevatedCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -221,7 +233,13 @@ fun FocusScreen(
                                 color = MaterialTheme.colorScheme.secondary
                             )
 
-                            Text("Quando acabar, vire o celular para o próximo foco.")
+                            Text(
+                                if (viewModel.estudoAtivo) {
+                                    "Quando acabar, a próxima sessão começa sozinha se o celular estiver virado."
+                                } else {
+                                    "Quando acabar, você avalia o estudo."
+                                }
+                            )
 
                             OutlinedButton(onClick = viewModel::pularDescanso) {
                                 Text("Pular descanso")
@@ -265,7 +283,11 @@ fun FocusScreen(
                 }
                 if (viewModel.sessaoConcluida) {
                     Text(
-                        text = "Sessão concluída! Foco de ${viewModel.focoMinutos} min completo.",
+                        text = if (viewModel.totalSessoes > 1) {
+                            "Estudo concluído! ${viewModel.totalSessoes} sessões de ${viewModel.focoMinutos} min."
+                        } else {
+                            "Sessão concluída! Foco de ${viewModel.focoMinutos} min completo."
+                        },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -283,6 +305,7 @@ private fun TelaFocoAtiva(
     tempoRestanteSegundos: Int,
     progresso: Float,
     pausado: Boolean,
+    rotuloSessao: String?,
     onRetomar: () -> Unit,
     onEncerrar: () -> Unit,
     painelRuido: @Composable () -> Unit
@@ -319,6 +342,14 @@ private fun TelaFocoAtiva(
             letterSpacing = 2.sp,
             color = corDestaque
         )
+
+        if (rotuloSessao != null) {
+            Text(
+                text = rotuloSessao,
+                style = MaterialTheme.typography.titleMedium,
+                color = corTexto
+            )
+        }
 
         AnelTempo(
             progresso = progresso,

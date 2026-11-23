@@ -126,4 +126,26 @@ class MetricasTest {
         assertEquals("2h", formatarHoras(120))
         assertEquals("1h5min", formatarHoras(65))
     }
+
+    @Test
+    fun ordenaPorNotaComSemNotaNoFim() {
+        val metricas = calcularMetricas(
+            listOf(sessao(1, 100), sessao(2, 20, nota = 4)),
+            listOf(biblioteca, quarto)
+        )
+
+        assertEquals("Quarto", ordenar(metricas, OrdemLocal.NOTA)[0].nome)
+    }
+
+    @Test
+    fun ordenaPorRuidoComMenorPrimeiroESemMedicaoNoFim() {
+        val metricas = calcularMetricas(
+            listOf(sessao(1, 25, db = 55), sessao(2, 25, db = 35), sessao(99, 25)),
+            listOf(biblioteca, quarto)
+        )
+
+        val nomes = ordenar(metricas, OrdemLocal.RUIDO).map { it.nome }
+
+        assertEquals(listOf("Quarto", "Biblioteca", "Sem local"), nomes)
+    }
 }

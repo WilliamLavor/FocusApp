@@ -51,6 +51,30 @@ fun calcularMetricas(sessoes: List<FocusSession>, locais: List<Local>): List<Met
         .sortedByDescending { it.minutos }
 }
 
+enum class OrdemLocal(val rotulo: String) {
+    TEMPO("Mais tempo"),
+    NOTA("Melhor nota"),
+    RUIDO("Mais quietos")
+}
+
+fun ordenar(metricas: List<MetricaLocal>, ordem: OrdemLocal): List<MetricaLocal> =
+    when (ordem) {
+        OrdemLocal.TEMPO -> metricas.sortedByDescending { it.minutos }
+
+        //sem nota vai pro fim
+        OrdemLocal.NOTA -> metricas.sortedWith(
+            compareByDescending<MetricaLocal> { it.qualidade != null }
+                .thenByDescending { it.qualidade ?: 0.0 }
+                .thenByDescending { it.minutos }
+        )
+
+        //menor dB primeiro, sem medição vai pro fim
+        OrdemLocal.RUIDO -> metricas.sortedWith(
+            compareBy<MetricaLocal> { it.mediaDb == 0 }
+                .thenBy { it.mediaDb }
+        )
+    }
+
 //melhor nota média, ou o mais usado se ninguém avaliou
 fun melhorLocal(metricas: List<MetricaLocal>): MetricaLocal? {
     val comLocal = metricas.filter { it.temLocal && it.sessoes > 0 }

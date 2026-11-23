@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -35,10 +36,15 @@ import com.example.focusapp.data.Local
 @Composable
 fun MetricasScreen(
     sessoes: List<FocusSession>,
-    locais: List<Local>
+    locais: List<Local>,
+    dias: Int,
+    onMudarDias: (Int) -> Unit
 ) {
-    val metricas = remember(sessoes, locais) { calcularMetricas(sessoes, locais) }
-    val melhor = remember(metricas) { melhorLocal(metricas) }
+    var ordem by remember { mutableStateOf(OrdemLocal.TEMPO) }
+
+    val calculadas = remember(sessoes, locais) { calcularMetricas(sessoes, locais) }
+    val metricas = remember(calculadas, ordem) { ordenar(calculadas, ordem) }
+    val melhor = remember(calculadas) { melhorLocal(calculadas) }
     val maiorTempo = (metricas.maxOfOrNull { it.minutos } ?: 1).coerceAtLeast(1)
 
     //qual local ta aberto (chave = id, -1 = sem local)
@@ -70,13 +76,18 @@ fun MetricasScreen(
                 style = MaterialTheme.typography.headlineSmall
             )
 
-            Text(
-                text = "Últimos 30 dias",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for ((valor, nome) in listOf(7 to "7 dias", 30 to "30 dias", 0 to "Tudo")) {
+                    FilterChip(
+                        selected = dias == valor,
+                        onClick = { onMudarDias(valor) },
+                        label = { Text(nome) }
+                    )
+                }
+            }
 
             if (sessoes.isEmpty()) {
-                Text("Ainda não há sessões nos últimos 30 dias.")
+                Text("Ainda não há sessões nesse período.")
             }
 
             if (melhor != null) {
@@ -118,6 +129,16 @@ fun MetricasScreen(
             }
 
             if (metricas.isNotEmpty()) {
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (opcao in OrdemLocal.entries) {
+                        FilterChip(
+                            selected = ordem == opcao,
+                            onClick = { ordem = opcao },
+                            label = { Text(opcao.rotulo) }
+                        )
+                    }
+                }
 
                 Text(
                     text = "Toque num local para ver os detalhes",

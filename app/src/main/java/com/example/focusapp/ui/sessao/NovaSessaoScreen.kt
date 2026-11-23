@@ -34,10 +34,12 @@ import com.example.focusapp.data.Local
 import com.example.focusapp.ui.focus.DESCANSO_MAX_MINUTOS
 import com.example.focusapp.ui.focus.DESCANSO_MIN_MINUTOS
 import com.example.focusapp.ui.focus.FOCO_MAX_MINUTOS
+import com.example.focusapp.ui.focus.SESSOES_MAX
+import com.example.focusapp.ui.focus.SESSOES_MIN
 import com.example.focusapp.ui.focus.FOCO_MIN_MINUTOS
 import com.example.focusapp.ui.focus.FocusViewModel
 
-// matéria e minutos de foco/descanso
+// matéria, quantas sessões e minutos de foco/descanso
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NovaSessaoScreen(
@@ -49,13 +51,16 @@ fun NovaSessaoScreen(
     // campos do formulário
     //matéria e local sobrevivem à troca de aba
     var materia by rememberSaveable { mutableStateOf(viewModel.materia) }
+    var sessoesTexto by remember { mutableStateOf(viewModel.totalSessoes.toString()) }
     var focoTexto by remember { mutableStateOf(viewModel.focoMinutos.toString()) }
     var descansoTexto by remember { mutableStateOf(viewModel.descansoMinutos.toString()) }
     var localId by rememberSaveable { mutableStateOf(viewModel.localId) }
 
+    val sessoes = sessoesTexto.toIntOrNull()
     val foco = focoTexto.toIntOrNull()
     val descanso = descansoTexto.toIntOrNull()
 
+    val sessoesValido = sessoes != null && sessoes in SESSOES_MIN..SESSOES_MAX
     val focoValido = foco != null && foco in FOCO_MIN_MINUTOS..FOCO_MAX_MINUTOS
     val descansoValido = descanso != null && descanso in DESCANSO_MIN_MINUTOS..DESCANSO_MAX_MINUTOS
 
@@ -80,11 +85,6 @@ fun NovaSessaoScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 
-            Text(
-                text = "Reserve um tempo para o que importa.",
-                style = MaterialTheme.typography.bodyLarge
-            )
-
             OutlinedTextField(
                 value = materia,
                 onValueChange = { materia = it },
@@ -92,6 +92,21 @@ fun NovaSessaoScreen(
                 placeholder = { Text("Ex: Matemática Discreta") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
+            )
+
+            OutlinedTextField(
+                value = sessoesTexto,
+                onValueChange = { novo ->
+                    if (novo.length <= 2 && novo.all { it.isDigit() }) sessoesTexto = novo
+                },
+                label = { Text("Quantas sessões você quer fazer?") },
+                isError = !sessoesValido,
+                supportingText = {
+                    Text("De $SESSOES_MIN a $SESSOES_MAX. A avaliação vem só no fim de todas.")
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Row(
@@ -127,6 +142,14 @@ fun NovaSessaoScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
+                )
+            }
+
+            if (sessoes != null && foco != null && sessoesValido && focoValido && sessoes > 1) {
+                Text(
+                    text = "$sessoes sessões de $foco min = ${sessoes * foco} min de foco, " +
+                        "com descanso de ${descanso ?: 0} min entre elas.",
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
 
@@ -171,11 +194,12 @@ fun NovaSessaoScreen(
                         materia,
                         foco ?: 0,
                         descanso ?: 0,
+                        sessoes ?: 1,
                         locais.firstOrNull { it.id == localId }
                     )
                     onIniciar()
                 },
-                enabled = focoValido && descansoValido,
+                enabled = sessoesValido && focoValido && descansoValido,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Iniciar sessão")

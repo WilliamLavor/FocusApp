@@ -22,7 +22,9 @@ class SensorVirado(context: Context) : SensorEventListener {
     val existe: Boolean = sensor != null
 
     private var registrado = false
-    private var viradoParaBaixo = false
+    //true depois de 2s virado; o ViewModel consulta isso
+    var viradoParaBaixo = false
+        private set
 
     //desde quando ta virado
     private var inicioPosicaoNanos: Long? = null
