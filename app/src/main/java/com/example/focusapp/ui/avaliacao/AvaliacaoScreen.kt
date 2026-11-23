@@ -207,9 +207,7 @@ fun AvaliacaoScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    if (viewModel.descansoMinutos > 0) "Salvar e descansar" else "Salvar"
-                )
+                Text("Salvar")
             }
 
             TextButton(
