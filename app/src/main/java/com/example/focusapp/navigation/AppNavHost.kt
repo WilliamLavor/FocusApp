@@ -1,16 +1,35 @@
 package com.example.focusapp.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import com.example.focusapp.ui.ajustes.AjustesScreen
 import com.example.focusapp.ui.avaliacao.AvaliacaoScreen
 import com.example.focusapp.ui.details.DetailScreen
 import com.example.focusapp.ui.focus.FocusScreen
@@ -43,108 +62,155 @@ fun AppNavHost(
         }
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = NavRoutes.NovaSessao.route,
-        modifier = modifier
-    ) {
+    // barra de baixo só nas telas principais
+    val rotaAtual = navController.currentBackStackEntryAsState().value?.destination?.route
+    val abas = listOf(
+        Aba("Timer", Icons.Default.Timer, NavRoutes.NovaSessao.route),
+        Aba("Métricas", Icons.Default.BarChart, NavRoutes.Metricas.route),
+        Aba("Ajustes", Icons.Default.Settings, NavRoutes.Ajustes.route)
+    )
+    val mostrarBarra = abas.any { it.rota == rotaAtual }
 
-        // 0. Tela de Nova sessão
-        composable(route = NavRoutes.NovaSessao.route) {
-            NovaSessaoScreen(
-                viewModel = focusViewModel,
-                locais = locais,
-                escuro = escuro,
-                onAlternarTema = onAlternarTema,
-                onGerenciarLocais = {
-                    navController.navigate(NavRoutes.Locais.route)
-                },
-                onNavigateToMetricas = {
-                    navController.navigate(NavRoutes.Metricas.route)
-                },
-                onIniciar = {
-                    navController.navigate(NavRoutes.Focus.route)
-                },
-                onNavigateToHistory = {
-                    navController.navigate(NavRoutes.History.route)
+    Scaffold(
+        modifier = modifier,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        bottomBar = {
+            if (mostrarBarra) {
+                NavigationBar {
+                    for (aba in abas) {
+                        NavigationBarItem(
+                            selected = rotaAtual == aba.rota,
+                            onClick = {
+                                navController.navigate(aba.rota) {
+                                    popUpTo(NavRoutes.NovaSessao.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(aba.icone, contentDescription = aba.nome) },
+                            label = { Text(aba.nome) }
+                        )
+                    }
                 }
-            )
+            }
         }
+    ) { innerPadding ->
 
-        // 1. Tela de Foco
-        composable(route = NavRoutes.Focus.route) {
-            FocusScreen(
-                viewModel = focusViewModel,
-                onNavigateToHistory = {
-                    navController.navigate(NavRoutes.History.route)
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
+        NavHost(
+            navController = navController,
+            startDestination = NavRoutes.NovaSessao.route,
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+        ) {
 
-        // Tela de Locais
-        composable(route = NavRoutes.Locais.route) {
-            LocaisScreen(
-                locais = locais,
-                onSalvar = locaisViewModel::salvar,
-                onExcluir = locaisViewModel::excluir,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
+            //nova sessão
+            composable(route = NavRoutes.NovaSessao.route) {
+                NovaSessaoScreen(
+                    viewModel = focusViewModel,
+                    locais = locais,
+                    onGerenciarLocais = {
+                        navController.navigate(NavRoutes.Locais.route)
+                    },
+                    onIniciar = {
+                        navController.navigate(NavRoutes.Focus.route)
+                    }
+                )
+            }
 
-        // Tela de Métricas
-        composable(route = NavRoutes.Metricas.route) {
-            val metricasViewModel: MetricasViewModel = viewModel()
-            val sessoes by metricasViewModel.sessoes.collectAsState(initial = emptyList())
+            //timer
+            composable(route = NavRoutes.Focus.route) {
+                FocusScreen(
+                    viewModel = focusViewModel,
+                    onNavigateToHistory = {
+                        navController.navigate(NavRoutes.History.route)
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
 
-            MetricasScreen(
-                sessoes = sessoes,
-                locais = locais,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
+            //locais
+            composable(route = NavRoutes.Locais.route) {
+                LocaisScreen(
+                    locais = locais,
+                    onSalvar = locaisViewModel::salvar,
+                    onExcluir = locaisViewModel::excluir,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
 
-        // Tela de Avaliação
-        composable(route = NavRoutes.Avaliacao.route) {
-            AvaliacaoScreen(
-                viewModel = focusViewModel,
-                onConcluir = {
-                    navController.popBackStack()
-                }
-            )
-        }
+            //métricas
+            composable(route = NavRoutes.Metricas.route) {
+                val metricasViewModel: MetricasViewModel = viewModel()
+                var dias by rememberSaveable { mutableIntStateOf(30) }
+                val sessoesFlow = remember(dias) { metricasViewModel.sessoes(dias) }
+                val sessoes by sessoesFlow.collectAsState(initial = emptyList())
 
-        // 2. Tela de Histórico
-        composable(route = NavRoutes.History.route) {
-            HistoryScreen(
-                onNavigateToDetails = { sessionId ->
-                    navController.navigate(NavRoutes.Details.createRoute(sessionId))
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
+                MetricasScreen(
+                    sessoes = sessoes,
+                    locais = locais,
+                    dias = dias,
+                    onMudarDias = { dias = it }
+                )
+            }
 
-        // 3. Tela de Detalhes
-        composable(
-            route = NavRoutes.Details.route, // "details/{sessionId}"
-            arguments = listOf(
-                navArgument("sessionId") { type = NavType.IntType }
-            )
-        ) { backStackEntry ->
-            val sessionId = backStackEntry.arguments?.getInt("sessionId") ?: 0
+            //ajustes
+            composable(route = NavRoutes.Ajustes.route) {
+                AjustesScreen(
+                    viewModel = focusViewModel,
+                    escuro = escuro,
+                    onAlternarTema = onAlternarTema,
+                    onMeusLocais = {
+                        navController.navigate(NavRoutes.Locais.route)
+                    },
+                    onHistorico = {
+                        navController.navigate(NavRoutes.History.route)
+                    }
+                )
+            }
 
-            DetailScreen(
-                sessionId = sessionId,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            //avaliação
+            composable(route = NavRoutes.Avaliacao.route) {
+                AvaliacaoScreen(
+                    viewModel = focusViewModel,
+                    onConcluir = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            //histórico
+            composable(route = NavRoutes.History.route) {
+                HistoryScreen(
+                    onNavigateToDetails = { sessionId ->
+                        navController.navigate(NavRoutes.Details.createRoute(sessionId))
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            //detalhes
+            composable(
+                route = NavRoutes.Details.route, // "details/{sessionId}"
+                arguments = listOf(
+                    navArgument("sessionId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val sessionId = backStackEntry.arguments?.getInt("sessionId") ?: 0
+
+                DetailScreen(
+                    sessionId = sessionId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
+
+private class Aba(val nome: String, val icone: ImageVector, val rota: String)

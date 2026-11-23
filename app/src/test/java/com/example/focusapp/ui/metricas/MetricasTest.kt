@@ -2,6 +2,7 @@ package com.example.focusapp.ui.metricas
 
 import com.example.focusapp.data.FocusSession
 import com.example.focusapp.data.Local
+import com.example.focusapp.data.StatusSessao
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -20,7 +21,7 @@ class MetricasTest {
         materia = "Teste",
         data = 0L,
         duracaoMinutos = minutos,
-        status = "CONCLUIDO",
+        status = StatusSessao.CONCLUIDO.name,
         mediaDb = db,
         avaliacao = nota,
         localId = local
@@ -66,8 +67,29 @@ class MetricasTest {
     fun localApagadoViraSemLocal() {
         val resultado = calcularMetricas(listOf(sessao(99, 25)), listOf(biblioteca))
 
-        assertEquals("Sem local", resultado[0].nome)
-        assertEquals(false, resultado[0].temLocal)
+        val semLocal = resultado.first { !it.temLocal }
+        assertEquals("Sem local", semLocal.nome)
+        assertEquals(25, semLocal.minutos)
+    }
+
+    @Test
+    fun localSemSessoesTambemAparece() {
+        val resultado = calcularMetricas(listOf(sessao(1, 25)), listOf(biblioteca, quarto))
+
+        assertEquals(2, resultado.size)
+
+        val vazio = resultado.first { it.nome == "Quarto" }
+        assertEquals(0, vazio.sessoes)
+        assertEquals(0, vazio.minutos)
+        assertNull(vazio.qualidade)
+        assertNull(vazio.ultimaSessao)
+    }
+
+    @Test
+    fun melhorLocalIgnoraLocalSemSessoes() {
+        val metricas = calcularMetricas(listOf(sessao(1, 25)), listOf(biblioteca, quarto))
+
+        assertEquals("Biblioteca", melhorLocal(metricas)?.nome)
     }
 
     @Test
@@ -103,5 +125,27 @@ class MetricasTest {
         assertEquals("25 min", formatarHoras(25))
         assertEquals("2h", formatarHoras(120))
         assertEquals("1h5min", formatarHoras(65))
+    }
+
+    @Test
+    fun ordenaPorNotaComSemNotaNoFim() {
+        val metricas = calcularMetricas(
+            listOf(sessao(1, 100), sessao(2, 20, nota = 4)),
+            listOf(biblioteca, quarto)
+        )
+
+        assertEquals("Quarto", ordenar(metricas, OrdemLocal.NOTA)[0].nome)
+    }
+
+    @Test
+    fun ordenaPorRuidoComMenorPrimeiroESemMedicaoNoFim() {
+        val metricas = calcularMetricas(
+            listOf(sessao(1, 25, db = 55), sessao(2, 25, db = 35), sessao(99, 25)),
+            listOf(biblioteca, quarto)
+        )
+
+        val nomes = ordenar(metricas, OrdemLocal.RUIDO).map { it.nome }
+
+        assertEquals(listOf("Quarto", "Biblioteca", "Sem local"), nomes)
     }
 }

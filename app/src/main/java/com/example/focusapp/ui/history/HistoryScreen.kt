@@ -15,12 +15,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.FocusSession
+import com.example.focusapp.data.StatusSessao
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HistoryScreen(
     onNavigateToDetails: (Int) -> Unit,
@@ -33,7 +34,6 @@ fun HistoryScreen(
         AppDatabase.getDatabase(context).focusDao()
     }
 
-    // Observa as alterações no banco
     val sessoesFlow = remember {
         dao.observarTodas()
     }
@@ -52,6 +52,18 @@ fun HistoryScreen(
     val nomesLocais = locais.associate { it.id to it.nome }
 
     val scope = rememberCoroutineScope()
+
+    //filtros (dias 0 = tudo)
+    var busca by remember { mutableStateOf("") }
+    var filtroLocal by remember { mutableStateOf<Int?>(null) }
+    var filtroDias by remember { mutableIntStateOf(0) }
+
+    val filtradas = remember(sessoes, busca, filtroLocal, filtroDias) {
+        filtrarSessoes(sessoes, busca, filtroLocal, filtroDias)
+    }
+
+    //sessao que ta esperando confirmacao pra excluir
+    var paraExcluir by remember { mutableStateOf<FocusSession?>(null) }
 
     Scaffold(
         topBar = {
@@ -85,7 +97,7 @@ fun HistoryScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // Caso não existam sessões
+            //lista vazia
             if (sessoes.isEmpty()) {
 
                 item {
@@ -102,9 +114,60 @@ fun HistoryScreen(
 
             } else {
 
-                // Exibe cada sessão do banco
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                        OutlinedTextField(
+                            value = busca,
+                            onValueChange = { busca = it },
+                            label = { Text("Buscar matéria") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            for ((dias, nome) in listOf(0 to "Tudo", 7 to "7 dias", 30 to "30 dias")) {
+                                FilterChip(
+                                    selected = filtroDias == dias,
+                                    onClick = { filtroDias = dias },
+                                    label = { Text(nome) }
+                                )
+                            }
+                        }
+
+                        if (locais.isNotEmpty()) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = filtroLocal == null,
+                                    onClick = { filtroLocal = null },
+                                    label = { Text("Todos os locais") }
+                                )
+
+                                for (local in locais) {
+                                    FilterChip(
+                                        selected = filtroLocal == local.id,
+                                        onClick = { filtroLocal = local.id },
+                                        label = { Text(local.nome) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (filtradas.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Nenhuma sessão com esses filtros.",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        )
+                    }
+                }
+
                 items(
-                    items = sessoes,
+                    items = filtradas,
                     key = { it.id }
                 ) { sessao ->
 
@@ -117,15 +180,28 @@ fun HistoryScreen(
                             onNavigateToDetails(sessao.id)
                         },
 
-                        onDelete = {
-                            scope.launch {
-                                dao.excluir(sessao)
-                            }
-                        }
+                        onDelete = { paraExcluir = sessao }
                     )
                 }
             }
         }
+    }
+
+    paraExcluir?.let { alvo ->
+        AlertDialog(
+            onDismissRequest = { paraExcluir = null },
+            title = { Text("Excluir sessão?") },
+            text = { Text("A sessão de ${alvo.materia} será apagada e não dá pra desfazer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { dao.excluir(alvo) }
+                    paraExcluir = null
+                }) { Text("Excluir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { paraExcluir = null }) { Text("Cancelar") }
+            }
+        )
     }
 }
 
@@ -166,7 +242,7 @@ private fun SessionCard(
                 )
 
                 Text(
-                    text = sessao.status
+                    text = StatusSessao.rotuloDe(sessao.status)
                 )
 
                 Text(

@@ -7,13 +7,13 @@ import android.media.MediaRecorder
 import kotlin.math.log10
 import kotlin.math.sqrt
 
-// Mede o ruído do ambiente usando o microfone.
-// Uso: iniciar() -> lerDb() quantas vezes quiser -> parar()
+// mede o barulho do ambiente pelo microfone
+// iniciar() -> lerDb() quantas vezes quiser -> parar()
 class MedidorRuido {
 
     private val taxaAmostragem = 44100
 
-    // Tamanho mínimo de buffer que o Android aceita para esta configuração
+    //menor buffer que o android aceita
     private val tamanhoBuffer = AudioRecord.getMinBufferSize(
         taxaAmostragem,
         AudioFormat.CHANNEL_IN_MONO,
@@ -22,7 +22,7 @@ class MedidorRuido {
 
     private var gravador: AudioRecord? = null
 
-    // A permissão RECORD_AUDIO é pedida na tela, antes de chamar este método
+    //a permissão do microfone é pedida na tela antes
     @SuppressLint("MissingPermission")
     fun iniciar() {
         val novoGravador = AudioRecord(
@@ -41,13 +41,13 @@ class MedidorRuido {
         }
     }
 
-    // Lê um pedaço do áudio e devolve o nível de ruído em dB (valor relativo)
+    //lê um pedaço do áudio e devolve o dB (relativo)
     fun lerDb(): Int {
         val amostras = ShortArray(tamanhoBuffer)
         val quantidade = gravador?.read(amostras, 0, amostras.size) ?: 0
         if (quantidade <= 0) return 0
 
-        // Raiz da média dos quadrados (RMS): mede a "força" do som
+        //RMS: a força do som
         var soma = 0.0
         for (i in 0 until quantidade) {
             soma += amostras[i] * amostras[i].toDouble()
@@ -55,7 +55,7 @@ class MedidorRuido {
         val rms = sqrt(soma / quantidade)
         if (rms < 1) return 0
 
-        // Converte para decibéis
+        //vira dB
         return (20 * log10(rms)).toInt()
     }
 

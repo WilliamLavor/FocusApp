@@ -13,6 +13,8 @@ import com.example.focusapp.alerta.AlertaFim
 import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.Local
 import com.example.focusapp.data.FocusSession
+import com.example.focusapp.data.StatusSessao
+import com.example.focusapp.ui.ajustes.Preferencias
 import com.example.focusapp.sensor.MedidorRuido
 import com.example.focusapp.sensor.SensorVirado
 import com.example.focusapp.ui.ruido.LIMITE_BARULHENTO_DB
@@ -29,6 +31,8 @@ const val FOCO_MIN_MINUTOS = 1
 const val FOCO_MAX_MINUTOS = 180
 const val DESCANSO_MIN_MINUTOS = 0   // 0 = sem descanso
 const val DESCANSO_MAX_MINUTOS = 60
+const val SESSOES_MIN = 1
+const val SESSOES_MAX = 10
 
 private const val FOCO_PADRAO_MINUTOS = 25
 private const val DESCANSO_PADRAO_MINUTOS = 5
@@ -50,6 +54,14 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     var localId by mutableStateOf<Int?>(null)
         private set
     var localNome by mutableStateOf("")
+        private set
+
+    // quantas sessões de foco no estudo e em qual está
+    var totalSessoes by mutableIntStateOf(SESSOES_MIN)
+        private set
+    var sessaoAtual by mutableIntStateOf(1)
+        private set
+    var estudoAtivo by mutableStateOf(false)
         private set
 
     // estado que a tela observa
@@ -89,6 +101,8 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     // controle interno
     private var temPermissao = false
     private var inicioSessao = 0L
+    private var minutosFeitos = 0           // foco já concluído nas sessões anteriores
+    private var sessaoAguardandoDescanso: FocusSession? = null   // vai pra avaliação quando o descanso acabar
     private var fimPrevistoMs = 0L          // quando o foco acaba (elapsedRealtime)
     private var restanteAoPausarMs = 0L     // quanto faltava ao pausar
     private var somaRuido = 0
@@ -99,6 +113,11 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
     private var ruidoJob: Job? = null
 
     init {
+        // tempos padrão vêm dos Ajustes
+        focoMinutos = Preferencias.foco(application)
+        descansoMinutos = Preferencias.descanso(application)
+        tempoRestanteSegundos = focoMinutos * 60
+
         // virou: inicia ou retoma. desvirou: pausa
         sensorVirado.aoMudar = { virado ->
             if (virado) {
@@ -111,10 +130,18 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
     // ações da tela
 
-    fun configurarSessao(novaMateria: String, foco: Int, descanso: Int, local: Local?) {
+    fun configurarSessao(novaMateria: String, foco: Int, descanso: Int, sessoes: Int, local: Local?) {
         if (focando) return
 
+        // sobrou estudo pela metade: fecha como abandonado
+        if (estudoAtivo) abandonarSessao()
+
+        // ou ficou um estudo terminado esperando o descanso: salva sem nota
+        sessaoAguardandoDescanso?.let { salvar(it) }
+        sessaoAguardandoDescanso = null
+
         encerrarDescanso()
+        totalSessoes = sessoes.coerceIn(SESSOES_MIN, SESSOES_MAX)
         materia = novaMateria.trim()
         localId = local?.id
         localNome = local?.nome ?: ""
@@ -124,8 +151,17 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         tempoRestanteSegundos = focoMinutos * 60
     }
 
+    // chamado quando muda o padrão nos Ajustes
+    fun aplicarPadroes(foco: Int, descanso: Int) {
+        if (focando || emDescanso) return
+
+        focoMinutos = foco.coerceIn(FOCO_MIN_MINUTOS, FOCO_MAX_MINUTOS)
+        descansoMinutos = descanso.coerceIn(DESCANSO_MIN_MINUTOS, DESCANSO_MAX_MINUTOS)
+        tempoRestanteSegundos = focoMinutos * 60
+    }
+
     fun pularDescanso() {
-        encerrarDescanso()
+        fimDoDescanso()
     }
 
     fun retomarFoco() {
@@ -134,22 +170,21 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
     // encerra e salva como abandonada
     fun encerrarSessao() {
-        if (focando) abandonarSessao()
+        if (estudoAtivo) abandonarSessao()
     }
 
-    //salva com a nota e começa o descanso
+    //salva com a nota
     fun salvarAvaliacao(estrelas: Int, fatores: List<String>) {
         val pendente = sessaoPendente ?: return
 
         sessaoPendente = null
+        sessaoConcluida = false
         salvar(
             pendente.copy(
                 avaliacao = estrelas.coerceIn(0, 5),
                 fatores = fatores.joinToString(",")
             )
         )
-
-        if (descansoMinutos > 0) iniciarDescanso()
     }
 
     fun pularAvaliacao() {
@@ -161,6 +196,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         val pendente = sessaoPendente ?: return
 
         sessaoPendente = null
+        sessaoConcluida = false
         salvar(pendente)
     }
 
@@ -175,9 +211,15 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
     fun aoPararApp() {
         sensorVirado.parar()
-        // sessão em andamento vira abandonada
-        if (focando) abandonarSessao()
-        if (emDescanso) encerrarDescanso()
+        // estudo em andamento vira abandonado
+        if (estudoAtivo) {
+            abandonarSessao()
+        } else if (emDescanso) {
+            // descanso final: o estudo acabou, salva sem nota
+            encerrarDescanso()
+            sessaoAguardandoDescanso?.let { salvar(it) }
+            sessaoAguardandoDescanso = null
+        }
     }
 
     // a tela saiu (ex.: foi pro histórico)
@@ -189,19 +231,26 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         // no descanso não começa foco novo
         if (focando || emDescanso) return
 
-        inicioSessao = System.currentTimeMillis()
+        // primeira sessão zera tudo; as outras continuam o mesmo estudo
+        if (!estudoAtivo) {
+            estudoAtivo = true
+            inicioSessao = System.currentTimeMillis()
+            minutosFeitos = 0
+            sessaoAtual = 1
+            somaRuido = 0
+            quantidadeMedicoes = 0
+            leituras.clear()
+            mediaAtualDb = 0
+            picoDb = 0
+            minDb = 0
+            picosRuido = 0
+            emPico = false
+        }
+
         fimPrevistoMs = SystemClock.elapsedRealtime() + focoMinutos * 60_000L
         tempoRestanteSegundos = focoMinutos * 60
         pausado = false
         sessaoConcluida = false
-        somaRuido = 0
-        quantidadeMedicoes = 0
-        leituras.clear()
-        mediaAtualDb = 0
-        picoDb = 0
-        minDb = 0
-        picosRuido = 0
-        emPico = false
         focando = true
 
         iniciarCronometro()
@@ -293,37 +342,61 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         if (quantidadeMedicoes > 0) somaRuido / quantidadeMedicoes else 0
 
     private fun concluirSessao() {
+        minutosFeitos += focoMinutos
+        val ultima = sessaoAtual >= totalSessoes
+
+        encerrarEstado()
+        alerta.tocar()
+
+        if (!ultima) {
+            // ainda tem sessão: descansa e a próxima começa sozinha se o celular continuar virado
+            sessaoAtual++
+            if (descansoMinutos > 0) {
+                iniciarDescanso()
+            } else if (sensorVirado.viradoParaBaixo) {
+                iniciarFoco()
+            }
+            return
+        }
+
         val sessao = FocusSession(
             materia = materia.ifBlank { "Estudo livre" },
             data = inicioSessao,
-            duracaoMinutos = focoMinutos,
-            status = "CONCLUIDO",
+            duracaoMinutos = minutosFeitos,
+            status = StatusSessao.CONCLUIDO.name,
             mediaDb = mediaRuido(),
             picoDb = picoDb,
             minDb = minDb,
             localId = localId
         )
 
-        encerrarEstado()
+        encerrarEstudo()
         sessaoConcluida = true
-        alerta.tocar()
 
-        // salva depois da avaliação
-        sessaoPendente = sessao
+        // a avaliação só vem depois do descanso final
+        if (descansoMinutos > 0) {
+            sessaoAguardandoDescanso = sessao
+            iniciarDescanso()
+        } else {
+            sessaoPendente = sessao
+        }
     }
 
     private fun abandonarSessao() {
-        if (inicioSessao > 0L) {
-            // minutos estudados de verdade (sem contar a pausa)
-            val minutos = ((focoMinutos * 60 - tempoRestanteSegundos) / 60.0)
-                .roundToInt()
-                .coerceAtLeast(1)
+        if (estudoAtivo) {
+            // minutos estudados de verdade (sem contar a pausa nem o descanso)
+            val parcial = if (focando) {
+                ((focoMinutos * 60 - tempoRestanteSegundos) / 60.0).roundToInt()
+            } else {
+                0
+            }
+            val minutos = (minutosFeitos + parcial).coerceAtLeast(1)
 
             val sessao = FocusSession(
                 materia = materia.ifBlank { "Estudo livre" },
                 data = inicioSessao,
                 duracaoMinutos = minutos,
-                status = "ABANDONADO",
+                status = StatusSessao.ABANDONADO.name,
                 mediaDb = mediaRuido(),
                 picoDb = picoDb,
                 minDb = minDb,
@@ -332,11 +405,12 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
             salvar(sessao)
         }
         encerrarEstado()
+        encerrarEstudo()
+        encerrarDescanso()
     }
 
     // limpa o estado do foco
     private fun encerrarEstado() {
-        inicioSessao = 0L
         fimPrevistoMs = 0L
         restanteAoPausarMs = 0L
         ruidoJob?.cancel()
@@ -345,6 +419,14 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         pausado = false
         focando = false
         tempoRestanteSegundos = focoMinutos * 60
+    }
+
+    // fecha o estudo inteiro (todas as sessões)
+    private fun encerrarEstudo() {
+        estudoAtivo = false
+        inicioSessao = 0L
+        minutosFeitos = 0
+        sessaoAtual = 1
     }
 
     private fun iniciarDescanso() {
@@ -363,7 +445,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (restante == 0) {
                     alerta.tocar()
-                    encerrarDescanso()
+                    fimDoDescanso()
                     break
                 }
                 delay(1000)
@@ -371,7 +453,20 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // acabou o descanso (ou pulou)
+    // acabou o descanso (ou pulou): avalia se era o último, senão segue pra próxima sessão
+    private fun fimDoDescanso() {
+        encerrarDescanso()
+
+        val aguardando = sessaoAguardandoDescanso
+
+        if (aguardando != null) {
+            sessaoAguardandoDescanso = null
+            sessaoPendente = aguardando
+        } else if (estudoAtivo && sensorVirado.viradoParaBaixo) {
+            iniciarFoco()
+        }
+    }
+
     private fun encerrarDescanso() {
         descansoJob?.cancel()
         descansoJob = null

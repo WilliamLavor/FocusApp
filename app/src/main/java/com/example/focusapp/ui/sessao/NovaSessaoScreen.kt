@@ -11,16 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -32,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -40,31 +34,33 @@ import com.example.focusapp.data.Local
 import com.example.focusapp.ui.focus.DESCANSO_MAX_MINUTOS
 import com.example.focusapp.ui.focus.DESCANSO_MIN_MINUTOS
 import com.example.focusapp.ui.focus.FOCO_MAX_MINUTOS
+import com.example.focusapp.ui.focus.SESSOES_MAX
+import com.example.focusapp.ui.focus.SESSOES_MIN
 import com.example.focusapp.ui.focus.FOCO_MIN_MINUTOS
 import com.example.focusapp.ui.focus.FocusViewModel
 
-// matéria e minutos de foco/descanso
+// matéria, quantas sessões e minutos de foco/descanso
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NovaSessaoScreen(
     viewModel: FocusViewModel,
     locais: List<Local>,
     onIniciar: () -> Unit,
-    onNavigateToHistory: () -> Unit,
-    onNavigateToMetricas: () -> Unit,
-    onGerenciarLocais: () -> Unit,
-    escuro: Boolean,
-    onAlternarTema: () -> Unit
+    onGerenciarLocais: () -> Unit
 ) {
     // campos do formulário
-    var materia by remember { mutableStateOf(viewModel.materia) }
+    //matéria e local sobrevivem à troca de aba
+    var materia by rememberSaveable { mutableStateOf(viewModel.materia) }
+    var sessoesTexto by remember { mutableStateOf(viewModel.totalSessoes.toString()) }
     var focoTexto by remember { mutableStateOf(viewModel.focoMinutos.toString()) }
     var descansoTexto by remember { mutableStateOf(viewModel.descansoMinutos.toString()) }
-    var localId by remember { mutableStateOf(viewModel.localId) }
+    var localId by rememberSaveable { mutableStateOf(viewModel.localId) }
 
+    val sessoes = sessoesTexto.toIntOrNull()
     val foco = focoTexto.toIntOrNull()
     val descanso = descansoTexto.toIntOrNull()
 
+    val sessoesValido = sessoes != null && sessoes in SESSOES_MIN..SESSOES_MAX
     val focoValido = foco != null && foco in FOCO_MIN_MINUTOS..FOCO_MAX_MINUTOS
     val descansoValido = descanso != null && descanso in DESCANSO_MIN_MINUTOS..DESCANSO_MAX_MINUTOS
 
@@ -72,28 +68,6 @@ fun NovaSessaoScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Nova sessão") },
-                actions = {
-                    IconButton(onClick = onAlternarTema) {
-                        Icon(
-                            imageVector = if (escuro) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = if (escuro) "Tema claro" else "Tema escuro"
-                        )
-                    }
-
-                    IconButton(onClick = onNavigateToMetricas) {
-                        Icon(
-                            imageVector = Icons.Default.BarChart,
-                            contentDescription = "Ver Métricas"
-                        )
-                    }
-
-                    IconButton(onClick = onNavigateToHistory) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "Ver Histórico"
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -111,11 +85,6 @@ fun NovaSessaoScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 
-            Text(
-                text = "Reserve um tempo para o que importa.",
-                style = MaterialTheme.typography.bodyLarge
-            )
-
             OutlinedTextField(
                 value = materia,
                 onValueChange = { materia = it },
@@ -123,6 +92,21 @@ fun NovaSessaoScreen(
                 placeholder = { Text("Ex: Matemática Discreta") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
+            )
+
+            OutlinedTextField(
+                value = sessoesTexto,
+                onValueChange = { novo ->
+                    if (novo.length <= 2 && novo.all { it.isDigit() }) sessoesTexto = novo
+                },
+                label = { Text("Quantas sessões você quer fazer?") },
+                isError = !sessoesValido,
+                supportingText = {
+                    Text("De $SESSOES_MIN a $SESSOES_MAX. A avaliação vem só no fim de todas.")
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Row(
@@ -158,6 +142,14 @@ fun NovaSessaoScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
+                )
+            }
+
+            if (sessoes != null && foco != null && sessoesValido && focoValido && sessoes > 1) {
+                Text(
+                    text = "$sessoes sessões de $foco min = ${sessoes * foco} min de foco, " +
+                        "com descanso de ${descanso ?: 0} min entre elas.",
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
 
@@ -202,11 +194,12 @@ fun NovaSessaoScreen(
                         materia,
                         foco ?: 0,
                         descanso ?: 0,
+                        sessoes ?: 1,
                         locais.firstOrNull { it.id == localId }
                     )
                     onIniciar()
                 },
-                enabled = focoValido && descansoValido,
+                enabled = sessoesValido && focoValido && descansoValido,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Iniciar sessão")

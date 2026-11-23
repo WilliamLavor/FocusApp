@@ -6,12 +6,13 @@ import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.FocusSession
 import kotlinx.coroutines.flow.Flow
 
-private const val TRINTA_DIAS_MS = 30L * 24 * 60 * 60 * 1000
+private const val DIA_MS = 24L * 60 * 60 * 1000
 
 class MetricasViewModel(application: Application) : AndroidViewModel(application) {
 
-    //últimos 30 dias a partir de quando a tela abre
-    val sessoes: Flow<List<FocusSession>> = AppDatabase.getDatabase(application)
-        .focusDao()
-        .observarDesde(System.currentTimeMillis() - TRINTA_DIAS_MS)
+    private val dao = AppDatabase.getDatabase(application).focusDao()
+
+    //dias = 0 pega tudo
+    fun sessoes(dias: Int): Flow<List<FocusSession>> =
+        dao.observarDesde(if (dias > 0) System.currentTimeMillis() - dias * DIA_MS else 0L)
 }

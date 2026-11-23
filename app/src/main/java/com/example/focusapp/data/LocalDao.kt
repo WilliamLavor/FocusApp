@@ -10,23 +10,23 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface LocalDao {
 
-    // LISTAR TODOS OS LOCAIS
+    //lista todos
     @Query("SELECT * FROM locais ORDER BY nome")
     fun observarTodos(): Flow<List<Local>>
 
-    // BUSCAR UM LOCAL PELO ID
+    //busca por id
     @Query("SELECT * FROM locais WHERE id = :id")
     suspend fun buscarPorId(id: Int): Local?
 
-    // INSERIR UM LOCAL
+    //insere
     @Insert
     suspend fun inserir(local: Local)
 
-    // ATUALIZAR UM LOCAL
+    //atualiza
     @Update
     suspend fun atualizar(local: Local)
 
-    // EXCLUIR UM LOCAL
+    //exclui
     @Delete
     suspend fun excluir(local: Local)
 }
