@@ -197,6 +197,13 @@ fun FocusScreen(
                         text = "Próxima: sessão ${viewModel.sessaoAtual} de ${viewModel.totalSessoes}",
                         style = MaterialTheme.typography.bodyMedium
                     )
+                } else if (!viewModel.estudoAtivo && !viewModel.emDescanso) {
+                    //o que vai rodar se não voltar na setinha pra mudar
+                    val total = viewModel.totalSessoes
+                    Text(
+                        text = "Serão $total ${if (total == 1) "sessão" else "sessões"} de ${viewModel.focoMinutos} min",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
 
                 ElevatedCard(

@@ -178,6 +178,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         val pendente = sessaoPendente ?: return
 
         sessaoPendente = null
+        sessaoConcluida = false
         salvar(
             pendente.copy(
                 avaliacao = estrelas.coerceIn(0, 5),
@@ -195,6 +196,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         val pendente = sessaoPendente ?: return
 
         sessaoPendente = null
+        sessaoConcluida = false
         salvar(pendente)
     }
 
