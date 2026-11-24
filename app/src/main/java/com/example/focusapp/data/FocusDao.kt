@@ -38,6 +38,10 @@ interface FocusDao {
     @Delete
     suspend fun excluir(sessao: FocusSession)
 
+    //apaga o histórico todo
+    @Query("DELETE FROM sessoes")
+    suspend fun excluirTodas()
+
     //tira o local das sessões que usavam ele
     @Query("UPDATE sessoes SET localId = NULL WHERE localId = :localId")
     suspend fun removerLocal(localId: Int)

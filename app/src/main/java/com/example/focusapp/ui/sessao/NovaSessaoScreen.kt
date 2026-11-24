@@ -22,14 +22,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.Local
 import com.example.focusapp.ui.focus.DESCANSO_MAX_MINUTOS
 import com.example.focusapp.ui.focus.DESCANSO_MIN_MINUTOS
@@ -37,7 +40,12 @@ import com.example.focusapp.ui.focus.FOCO_MAX_MINUTOS
 import com.example.focusapp.ui.focus.SESSOES_MAX
 import com.example.focusapp.ui.focus.SESSOES_MIN
 import com.example.focusapp.ui.focus.FOCO_MIN_MINUTOS
+import com.example.focusapp.ui.ajustes.Preferencias
 import com.example.focusapp.ui.focus.FocusViewModel
+import com.example.focusapp.ui.focus.lerMinutos
+import com.example.focusapp.ui.metricas.minutosDoDia
+import com.example.focusapp.ui.metricas.sequenciaDeDias
+import java.time.LocalDate
 
 // matéria, quantas sessões e minutos de foco/descanso
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -56,13 +64,19 @@ fun NovaSessaoScreen(
     var descansoTexto by remember { mutableStateOf(viewModel.descansoMinutos.toString()) }
     var localId by rememberSaveable { mutableStateOf(viewModel.localId) }
 
-    val sessoes = sessoesTexto.toIntOrNull()
-    val foco = focoTexto.toIntOrNull()
-    val descanso = descansoTexto.toIntOrNull()
+    val sessoes = lerMinutos(sessoesTexto, SESSOES_MIN, SESSOES_MAX)
+    val foco = lerMinutos(focoTexto, FOCO_MIN_MINUTOS, FOCO_MAX_MINUTOS)
+    val descanso = lerMinutos(descansoTexto, DESCANSO_MIN_MINUTOS, DESCANSO_MAX_MINUTOS)
 
-    val sessoesValido = sessoes != null && sessoes in SESSOES_MIN..SESSOES_MAX
-    val focoValido = foco != null && foco in FOCO_MIN_MINUTOS..FOCO_MAX_MINUTOS
-    val descansoValido = descanso != null && descanso in DESCANSO_MIN_MINUTOS..DESCANSO_MAX_MINUTOS
+    val sessoesValido = sessoes != null
+    val focoValido = foco != null
+    val descansoValido = descanso != null
+
+    //pro resumo do dia (meta e sequência)
+    val context = LocalContext.current
+    val fluxoSessoes = remember { AppDatabase.getDatabase(context).focusDao().observarTodas() }
+    val todas by fluxoSessoes.collectAsState(initial = emptyList())
+    val hoje = LocalDate.now()
 
     Scaffold(
         topBar = {
@@ -84,6 +98,14 @@ fun NovaSessaoScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+
+            val meta = Preferencias.meta(context)
+            val minutosHoje = minutosDoDia(todas, hoje)
+            val sequencia = sequenciaDeDias(todas, hoje)
+
+            if (meta > 0 || minutosHoje > 0 || sequencia > 0) {
+                ResumoDoDia(minutosHoje, meta, sequencia)
+            }
 
             OutlinedTextField(
                 value = materia,

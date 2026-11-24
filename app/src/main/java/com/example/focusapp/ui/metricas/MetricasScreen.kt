@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.focusapp.data.FocusSession
 import com.example.focusapp.data.Local
+import com.example.focusapp.ui.componentes.EstadoVazio
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +49,11 @@ fun MetricasScreen(
     val metricas = remember(calculadas, ordem) { ordenar(calculadas, ordem) }
     val melhor = remember(calculadas) { melhorLocal(calculadas) }
     val maiorTempo = (metricas.maxOfOrNull { it.minutos } ?: 1).coerceAtLeast(1)
+
+    val semana = remember(sessoes) { minutosPorDia(sessoes, 7) }
+    val materias = remember(sessoes) { metricasPorMateria(sessoes) }
+    val insight = remember(sessoes) { insightRuido(sessoes) }
+    val maiorMateria = (materias.maxOfOrNull { it.minutos } ?: 1).coerceAtLeast(1)
 
     //qual local ta aberto (chave = id, -1 = sem local)
     var aberto by remember { mutableStateOf<Int?>(null) }
@@ -87,7 +95,18 @@ fun MetricasScreen(
             }
 
             if (sessoes.isEmpty()) {
-                Text("Ainda não há sessões nesse período.")
+                EstadoVazio(
+                    icone = Icons.Default.BarChart,
+                    titulo = "Ainda não há sessões nesse período",
+                    dica = "Faça uma sessão na aba Timer pra ver suas métricas."
+                )
+            } else {
+                Text(
+                    text = "Últimos 7 dias",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                GraficoSemana(semana)
             }
 
             if (melhor != null) {
@@ -128,7 +147,43 @@ fun MetricasScreen(
                 }
             }
 
+            if (insight != null) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Ruído e nota",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Text(
+                            "Nas sessões que você avaliou com 4 ou 5 estrelas (${insight.qtdBoas}) " +
+                                "o ruído médio foi ${insight.dbBoas} dB. " +
+                                "Nas outras (${insight.qtdDemais}), ${insight.dbDemais} dB."
+                        )
+
+                        if (insight.dbBoas != insight.dbDemais) {
+                            Text(
+                                text = if (insight.dbBoas < insight.dbDemais) {
+                                    "Você tende a avaliar melhor quando está mais quieto."
+                                } else {
+                                    "Você tende a avaliar melhor com um pouco mais de barulho."
+                                },
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+
             if (metricas.isNotEmpty()) {
+
+                Text(
+                    text = "Por local",
+                    style = MaterialTheme.typography.titleMedium
+                )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (opcao in OrdemLocal.entries) {
@@ -181,6 +236,48 @@ fun MetricasScreen(
                         if (aberto == chave) {
                             DetalhesLocal(metrica)
                         }
+                    }
+                }
+            }
+
+            if (materias.isNotEmpty()) {
+
+                Text(
+                    text = "Por matéria",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                for (materia in materias) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = materia.nome,
+                                style = MaterialTheme.typography.titleSmall
+                            )
+
+                            Text(
+                                text = formatarHoras(materia.minutos),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        LinearProgressIndicator(
+                            progress = { materia.minutos / maiorMateria.toFloat() },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        val partes = mutableListOf("${materia.sessoes} ${if (materia.sessoes == 1) "sessão" else "sessões"}")
+                        if (materia.qualidade != null) partes.add("★ ${"%.1f".format(materia.qualidade)}")
+                        if (materia.mediaDb > 0) partes.add("${materia.mediaDb} dB")
+
+                        Text(
+                            text = partes.joinToString(" • "),
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
