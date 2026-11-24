@@ -12,6 +12,9 @@ object Preferencias {
     private const val ARQUIVO = "config"
     private const val FOCO = "foco_padrao"
     private const val DESCANSO = "descanso_padrao"
+    private const val META = "meta_diaria"
+
+    const val META_MAX_MINUTOS = 600
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(ARQUIVO, Context.MODE_PRIVATE)
@@ -22,10 +25,15 @@ object Preferencias {
     fun descanso(context: Context): Int =
         prefs(context).getInt(DESCANSO, 5).coerceIn(DESCANSO_MIN_MINUTOS, DESCANSO_MAX_MINUTOS)
 
-    fun salvar(context: Context, foco: Int, descanso: Int) {
+    // 0 = sem meta
+    fun meta(context: Context): Int =
+        prefs(context).getInt(META, 60).coerceIn(0, META_MAX_MINUTOS)
+
+    fun salvar(context: Context, foco: Int, descanso: Int, meta: Int) {
         prefs(context).edit()
             .putInt(FOCO, foco)
             .putInt(DESCANSO, descanso)
+            .putInt(META, meta)
             .apply()
     }
 }

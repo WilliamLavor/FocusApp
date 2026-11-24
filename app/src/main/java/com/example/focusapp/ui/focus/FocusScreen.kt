@@ -412,7 +412,7 @@ private fun TelaFocoAtiva(
 }
 
 // segundos -> MM:SS (ou H:MM:SS quando passa de 1 hora)
-private fun formatarTempo(totalSegundos: Int): String {
+fun formatarTempo(totalSegundos: Int): String {
     val horas = totalSegundos / 3600
     val minutos = (totalSegundos % 3600) / 60
     val segundos = totalSegundos % 60

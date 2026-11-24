@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.focusapp.data.AppDatabase
 import com.example.focusapp.data.FocusSession
+import com.example.focusapp.ui.componentes.EstadoVazio
 import com.example.focusapp.data.StatusSessao
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -101,15 +103,11 @@ fun HistoryScreen(
             if (sessoes.isEmpty()) {
 
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Nenhuma sessão registrada.")
-                    }
+                    EstadoVazio(
+                        icone = Icons.Default.History,
+                        titulo = "Nenhuma sessão ainda",
+                        dica = "Faça uma sessão na aba Timer e ela aparece aqui."
+                    )
                 }
 
             } else {

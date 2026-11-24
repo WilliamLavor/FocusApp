@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.focusapp.data.Local
+import com.example.focusapp.ui.componentes.EstadoVazio
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,11 +84,14 @@ fun LocaisScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(32.dp),
+                    .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Nenhum local cadastrado. Toque em \"Adicionar local\".")
+                EstadoVazio(
+                    icone = Icons.Default.Place,
+                    titulo = "Nenhum local cadastrado",
+                    dica = "Toque em \"Adicionar local\" pra criar o primeiro."
+                )
             }
 
         } else {
