@@ -150,16 +150,16 @@ O celular é considerado virado quando três condições se cumprem:
 - a aceleração total fica próxima da gravidade, ou seja, o aparelho está parado;
 - a posição se mantém por cerca de 2 segundos.
 
-Para sair da posição existe uma folga (histerese), assim a detecção não fica oscilando na borda. O sensor é registrado quando o app aparece e liberado quando ele sai da tela.
+Para sair da posição existe uma folga, assim a detecção não fica oscilando na borda. O sensor é registrado quando o app aparece e liberado quando ele sai da tela.
 
 ### Microfone (`MedidorRuido`)
 
 - A permissão `RECORD_AUDIO` é pedida em tempo de execução. Se for negada, o app segue funcionando, só sem a medição de ruído.
 - A leitura usa `AudioRecord`, numa corrotina fora da thread principal.
 - A cada 500 ms, o áudio lido vira um valor RMS e depois decibéis.
-- Guardamos média, pico, mínimo e quantos picos passaram de 60 dB. Nenhum áudio é gravado.
+- Guardamos média, pico, mínimo e quantos picos passaram de 60 dB. **Nenhum áudio é gravado.**
 
-Os dB são relativos. O celular não é calibrado como um decibelímetro, então o valor serve para comparar ambientes e sessões entre si e não como medida absoluta.
+Os dB são relativos.
 
 ### Alerta de fim (`AlertaFim`)
 
@@ -182,7 +182,6 @@ A contagem guarda o instante previsto de término com `SystemClock.elapsedRealti
 
 - Um registro guarda o estudo inteiro: 3 sessões de 25 min viram uma sessão de 75 min.
 - Apagar um local não apaga as sessões, que ficam sem local.
-- O banco está na versão 2 e não tem migrações. Quem tiver a versão 1 instalada precisa desinstalar o app e instalar de novo.
 - Tema, tempos padrão e meta diária ficam em `SharedPreferences`.
 
 ---
