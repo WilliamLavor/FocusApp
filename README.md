@@ -1,26 +1,26 @@
 # FocusApp
 
-Aplicativo Android nativo (Kotlin + Jetpack Compose) que ajuda estudantes a manterem o foco. O celular é virado com a tela para baixo para iniciar uma sessão de estudo no estilo Pomodoro, o app mede o ruído do ambiente e, no fim, o estudante avalia como foi. Com o histórico, o app mostra onde e quando ele rende mais.
+App Android nativo (Kotlin e Jetpack Compose) para ajudar estudantes a manter o foco. Para começar uma sessão de estudo no estilo Pomodoro, o celular é virado com a tela para baixo. Durante o foco o app mede o barulho do ambiente e, no fim, o estudante avalia como foi. Com o histórico, dá para ver onde e quando o rendimento é melhor.
 
-Projeto Final (AP2) da disciplina **RUS0291 – Desenvolvimento de Software para Dispositivos Móveis**, Universidade Federal do Ceará (UFC) – Campus Russas.
+Projeto final (AP2) da disciplina RUS0291, Desenvolvimento de Software para Dispositivos Móveis, UFC Russas.
 
-**Equipe:** William Lavor e Marina
+Equipe: William Lavor e Marina.
 
 ---
 
 ## Funcionalidades
 
-- **Nova sessão:** matéria, quantidade de sessões (1 a 10), minutos de foco e de descanso livres e local de estudo.
-- **Foco com o celular virado:** o acelerômetro detecta a tela para baixo (com ~2 s de estabilidade) e inicia o cronômetro. Desvirar pausa, virar de novo retoma.
-- **Várias sessões em sequência:** foco → descanso → foco... A próxima sessão começa sozinha se o celular continuar virado. A avaliação vem só uma vez, depois do último foco e do último descanso.
-- **Ruído do ambiente:** o microfone mede o nível de ruído (dB relativo) durante o foco: média, pico, mínimo e quantidade de picos.
-- **Avaliação:** de 1 a 5 estrelas e fatores que influenciaram (silêncio, cansaço, celular, conforto, iluminação).
-- **Alerta de fim:** vibra e toca o som do aparelho quando o foco ou o descanso acaba.
-- **Histórico:** busca por matéria e filtros por período e por local; detalhes com edição de matéria, anotações e avaliação; exclusão com confirmação.
-- **Locais:** cadastro, edição e exclusão dos locais de estudo (escolhidos manualmente, sem GPS).
-- **Métricas:** janela de 7 dias, 30 dias ou tudo; gráfico dos últimos 7 dias; melhor local; ranking dos locais (com detalhes de cada um, mesmo sem sessões) e das matérias; relação entre ruído e nota.
-- **Meta diária e sequência:** progresso do dia e dias seguidos estudando, na tela principal.
-- **Ajustes:** tema claro/escuro, minutos padrão de foco e descanso, meta diária, atalhos e opção de apagar o histórico.
+- Nova sessão: matéria, número de sessões (1 a 10), minutos de foco e de descanso livres e local de estudo.
+- Foco com o celular virado: o acelerômetro detecta a tela para baixo (estável por cerca de 2 s) e o cronômetro começa. Desvirar pausa e virar de novo retoma.
+- Várias sessões em sequência: foco, descanso, foco e assim por diante. A próxima começa sozinha se o celular continuar virado. A avaliação vem uma vez só, depois do último foco e do último descanso.
+- Ruído do ambiente: durante o foco o microfone mede o nível de ruído em dB relativo (média, pico, mínimo e quantidade de picos).
+- Avaliação: de 1 a 5 estrelas e fatores que influenciaram (silêncio, cansaço, celular, conforto, iluminação).
+- Alerta de fim: vibração e som quando o foco ou o descanso termina.
+- Histórico: busca por matéria, filtros por período e local, edição de matéria, notas e avaliação nos detalhes, e exclusão com confirmação.
+- Locais: cadastro, edição e exclusão dos locais de estudo, escolhidos à mão (sem GPS).
+- Métricas: janela de 7 dias, 30 dias ou tudo; gráfico dos últimos 7 dias; melhor local; ranking de locais e de matérias; relação entre ruído e nota.
+- Meta diária e sequência de dias estudando, na tela principal.
+- Ajustes: tema claro ou escuro, minutos padrão, meta diária e opção de apagar o histórico.
 
 Tudo funciona offline, com os dados guardados no aparelho.
 
@@ -45,7 +45,7 @@ flowchart LR
     HIST --> DET[Detalhes da sessão]
 ```
 
-A barra de navegação só aparece nas três telas principais. Durante o foco, a avaliação, os locais, o histórico e os detalhes ela fica escondida.
+A barra de navegação só aparece nas três telas principais e fica escondida no foco, na avaliação, nos locais, no histórico e nos detalhes.
 
 ### Fluxo de uma sessão
 
@@ -64,7 +64,7 @@ stateDiagram-v2
     Descanso --> Abandonado: saiu do app
 ```
 
-Se o app sai da tela no meio do estudo, a sessão é salva como `ABANDONADO`, com os minutos realmente estudados.
+Se o app sai da tela no meio do estudo, a sessão é salva como `ABANDONADO`, com os minutos que foram estudados.
 
 ---
 
@@ -111,9 +111,9 @@ flowchart TB
     TELAS --> PREF
 ```
 
-- **UI:** só desenha e repassa eventos. O estado do timer fica no `FocusViewModel`, que é compartilhado entre Nova sessão, Foco e Avaliação (escopo da Activity), então sobrevive à troca de tela.
-- **Cálculos puros:** métricas, filtros, estatísticas e validações são funções simples (`ui/metricas`, `ui/history/FiltroHistorico.kt`, `ui/focus/Validacao.kt`), por isso são testadas sem emulador.
-- **Dados:** duas entidades Room, `FocusSession` e `Local`. O status da sessão é o `enum` `StatusSessao`, salvo como texto.
+- UI: só desenha e repassa os eventos. O estado do timer fica no `FocusViewModel`, compartilhado entre Nova sessão, Foco e Avaliação (escopo da Activity), então sobrevive à troca de tela.
+- Cálculos puros: métricas, filtros, estatísticas e validações são funções simples (`ui/metricas`, `ui/history/FiltroHistorico.kt`, `ui/focus/Validacao.kt`), por isso dá para testá-las sem emulador.
+- Dados: duas entidades Room, `FocusSession` e `Local`. O status da sessão é o `enum` `StatusSessao`, salvo como texto.
 
 ### Estrutura de pastas
 
@@ -144,32 +144,32 @@ com.example.focusapp
 
 ### Acelerômetro (`SensorVirado`)
 
-Detecta o celular com a tela para baixo usando três condições:
+O celular é considerado virado quando três condições se cumprem:
 
-- **Orientação:** o eixo Z chega perto de -9 m/s².
-- **Estabilidade:** a aceleração total fica próxima da gravidade (aparelho parado).
-- **Permanência:** a posição se mantém por cerca de 2 segundos, evitando disparos sem querer.
+- o eixo Z fica perto de -9 m/s²;
+- a aceleração total fica próxima da gravidade, ou seja, o aparelho está parado;
+- a posição se mantém por cerca de 2 segundos.
 
-Ao sair da posição existe uma folga (histerese) para a detecção não ficar oscilando. O sensor é registrado quando o app aparece e liberado quando ele sai da tela.
+Para sair da posição existe uma folga (histerese), assim a detecção não fica oscilando na borda. O sensor é registrado quando o app aparece e liberado quando ele sai da tela.
 
 ### Microfone (`MedidorRuido`)
 
-- A permissão `RECORD_AUDIO` é pedida em tempo de execução.
-- A leitura usa `AudioRecord`, em corrotina fora da thread principal.
-- Cada pedaço de áudio vira um valor RMS, convertido em decibéis, a cada ~500 ms.
-- O app guarda média, pico, mínimo e quantos picos passaram do limite de barulho (60 dB).
+- A permissão `RECORD_AUDIO` é pedida em tempo de execução. Se for negada, o app segue funcionando, só sem a medição de ruído.
+- A leitura usa `AudioRecord`, numa corrotina fora da thread principal.
+- A cada 500 ms, o áudio lido vira um valor RMS e depois decibéis.
+- Guardamos média, pico, mínimo e quantos picos passaram de 60 dB. Nenhum áudio é gravado.
 
-**Atenção:** os dB são **relativos**. O celular não é calibrado como um decibelímetro profissional, então o valor serve para comparar ambientes e sessões entre si, não como medida absoluta.
+Os dB são relativos. O celular não é calibrado como um decibelímetro, então o valor serve para comparar ambientes e sessões entre si e não como medida absoluta.
 
 ### Alerta de fim (`AlertaFim`)
 
-Vibra e toca o toque padrão quando o foco ou o descanso termina. Usa a permissão `VIBRATE`.
+Vibra e toca o som padrão do aparelho quando o foco ou o descanso acaba. Usa a permissão `VIBRATE`.
 
 ---
 
 ## Cronômetro
 
-A contagem usa `SystemClock.elapsedRealtime()` e o instante previsto de término, não um contador que vai subtraindo. Assim a pausa, a retomada e o relógio do aparelho não distorcem o tempo.
+A contagem guarda o instante previsto de término com `SystemClock.elapsedRealtime()` e calcula o tempo restante a partir dele, em vez de ir subtraindo segundos. Assim um atraso no loop não acumula erro.
 
 ---
 
@@ -180,21 +180,21 @@ A contagem usa `SystemClock.elapsedRealtime()` e o instante previsto de término
 | `FocusSession` | `id`, `materia`, `data`, `duracaoMinutos`, `status`, `mediaDb`, `picoDb`, `minDb`, `notas`, `avaliacao`, `fatores`, `localId` |
 | `Local` | `id`, `nome`, `descricao` |
 
-- Uma sessão guarda o estudo inteiro: com 3 sessões de 25 min, o registro tem 75 min.
-- Apagar um local não apaga as sessões, que só ficam "sem local".
-- O banco está na **versão 2**, sem migrações. Se algum aparelho ainda tiver a versão 1, é preciso desinstalar e instalar de novo.
-- As preferências simples (tema, tempos padrão e meta diária) ficam em `SharedPreferences`.
+- Um registro guarda o estudo inteiro: 3 sessões de 25 min viram uma sessão de 75 min.
+- Apagar um local não apaga as sessões, que ficam sem local.
+- O banco está na versão 2 e não tem migrações. Quem tiver a versão 1 instalada precisa desinstalar o app e instalar de novo.
+- Tema, tempos padrão e meta diária ficam em `SharedPreferences`.
 
 ---
 
 ## Como rodar
 
-1. Abra a pasta do projeto no Android Studio.
-2. Aguarde o Gradle sincronizar.
-3. Rode em um celular real (o acelerômetro e o microfone não funcionam bem no emulador).
-4. Aceite a permissão do microfone na primeira sessão.
+1. Abrir a pasta do projeto no Android Studio.
+2. Esperar o Gradle sincronizar.
+3. Rodar em um celular de verdade, porque o acelerômetro e o microfone não funcionam bem no emulador.
+4. Aceitar a permissão do microfone na primeira sessão.
 
-Requisitos: Android 8.0 (API 26) ou superior.
+Requer Android 8.0 (API 26) ou superior.
 
 ### Testes
 
@@ -202,29 +202,29 @@ Requisitos: Android 8.0 (API 26) ou superior.
 ./gradlew test
 ```
 
-Os testes unitários cobrem as métricas por local, matéria e dia, a sequência de dias, o insight de ruído, o filtro do histórico, a validação dos minutos, o formato do tempo e o rótulo do status.
+Os testes unitários cobrem as métricas (por local, matéria e dia), a sequência de dias, o filtro do histórico, a validação dos minutos, o formato do tempo e o rótulo do status.
 
 ---
 
-## Ferramentas e bibliotecas
+## Tecnologias
 
 | Tecnologia | Uso |
 |---|---|
-| Kotlin | Linguagem principal |
-| Jetpack Compose + Material 3 | Interface |
+| Kotlin | Linguagem |
+| Jetpack Compose e Material 3 | Interface |
 | Navigation Compose | Navegação e barra inferior |
-| ViewModel + Coroutines | Estado e tarefas assíncronas |
-| Room + KSP | Persistência local |
+| ViewModel e Coroutines | Estado e tarefas assíncronas |
+| Room e KSP | Banco local |
 | SensorManager | Acelerômetro |
-| AudioRecord | Captura do microfone |
+| AudioRecord | Microfone |
 | JUnit | Testes unitários |
 | Gradle Kotlin DSL | Build |
 
 ---
 
-## Limitações conhecidas
+## Limitações
 
-- Com o app fora da tela (Home ou troca de app), o estudo é abandonado. Com a tela apagada pelo botão de ligar, o comportamento depende do sistema, porque o acelerômetro e o microfone não rodam em segundo plano.
+- Se o app sai da tela (Home ou troca de app), o estudo é abandonado. Com a tela apagada pelo botão de ligar o resultado depende do sistema, porque os sensores não rodam em segundo plano.
 - Não há notificação nem serviço em primeiro plano.
-- Não existe login nem sincronização na nuvem: os dados ficam só no aparelho.
-- O local de estudo é escolhido manualmente (sem GPS).
+- Não há login nem sincronização na nuvem. Os dados ficam só no aparelho.
+- O local de estudo é escolhido manualmente.
