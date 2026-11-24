@@ -2,9 +2,9 @@
 
 App Android nativo (Kotlin e Jetpack Compose) para ajudar estudantes a manter o foco. Para começar uma sessão de estudo no estilo Pomodoro, o celular é virado com a tela para baixo. Durante o foco o app mede o barulho do ambiente e, no fim, o estudante avalia como foi. Com o histórico, dá para ver onde e quando o rendimento é melhor.
 
-Projeto final (AP2) da disciplina RUS0291, Desenvolvimento de Software para Dispositivos Móveis, UFC Russas.
+Projeto final (AP2) da disciplina de desenvolvimento de software para dispositivos móveis, UFC Russas.
 
-Equipe: William Lavor e Marina.
+Equipe: William Sousa Lavor(556973) e Marina de Lima Freire(557548)
 
 ---
 
