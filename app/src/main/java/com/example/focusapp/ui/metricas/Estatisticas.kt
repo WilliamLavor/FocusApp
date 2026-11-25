@@ -87,6 +87,25 @@ fun metricasPorMateria(sessoes: List<FocusSession>): List<MetricaMateria> =
         }
         .sortedByDescending { it.minutos }
 
+//mesma ordem dos locais, só que pras matérias
+fun ordenarMaterias(materias: List<MetricaMateria>, ordem: OrdemLocal): List<MetricaMateria> =
+    when (ordem) {
+        OrdemLocal.TEMPO -> materias.sortedByDescending { it.minutos }
+
+        //sem nota vai pro fim
+        OrdemLocal.NOTA -> materias.sortedWith(
+            compareByDescending<MetricaMateria> { it.qualidade != null }
+                .thenByDescending { it.qualidade ?: 0.0 }
+                .thenByDescending { it.minutos }
+        )
+
+        //menor dB primeiro, sem medição vai pro fim
+        OrdemLocal.RUIDO -> materias.sortedWith(
+            compareBy<MetricaMateria> { it.mediaDb == 0 }
+                .thenBy { it.mediaDb }
+        )
+    }
+
 // compara o ruído das sessões nota 4-5 com as outras (só as que têm nota e medição)
 fun insightRuido(sessoes: List<FocusSession>): InsightRuido? {
     val validas = sessoes.filter { it.avaliacao > 0 && it.mediaDb > 0 }

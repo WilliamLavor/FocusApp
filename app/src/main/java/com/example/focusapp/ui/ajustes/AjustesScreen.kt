@@ -180,7 +180,7 @@ fun AjustesScreen(
                 enabled = focoValido && descansoValido && metaValida,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (salvo) "Salvo!" else "Salvar tempos")
+                Text(if (salvo) "Salvo!" else "Salvar")
             }
 
             Text(

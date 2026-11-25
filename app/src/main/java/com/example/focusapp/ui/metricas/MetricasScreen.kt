@@ -44,6 +44,7 @@ fun MetricasScreen(
     onMudarDias: (Int) -> Unit
 ) {
     var ordem by remember { mutableStateOf(OrdemLocal.TEMPO) }
+    var ordemMateria by remember { mutableStateOf(OrdemLocal.TEMPO) }
 
     val calculadas = remember(sessoes, locais) { calcularMetricas(sessoes, locais) }
     val metricas = remember(calculadas, ordem) { ordenar(calculadas, ordem) }
@@ -51,7 +52,10 @@ fun MetricasScreen(
     val maiorTempo = (metricas.maxOfOrNull { it.minutos } ?: 1).coerceAtLeast(1)
 
     val semana = remember(sessoes) { minutosPorDia(sessoes, 7) }
-    val materias = remember(sessoes) { metricasPorMateria(sessoes) }
+    val materiasPorTempo = remember(sessoes) { metricasPorMateria(sessoes) }
+    val materias = remember(materiasPorTempo, ordemMateria) {
+        ordenarMaterias(materiasPorTempo, ordemMateria)
+    }
     val insight = remember(sessoes) { insightRuido(sessoes) }
     val maiorMateria = (materias.maxOfOrNull { it.minutos } ?: 1).coerceAtLeast(1)
 
@@ -80,7 +84,7 @@ fun MetricasScreen(
         ) {
 
             Text(
-                text = "Onde você rende mais",
+                text = "Sobre o seu rendimento:",
                 style = MaterialTheme.typography.headlineSmall
             )
 
@@ -140,7 +144,7 @@ fun MetricasScreen(
                         partes.add(formatarHoras(melhor.minutos))
 
                         Text(
-                            text = partes.joinToString(" • "),
+                            text = partes.joinToString(" - "),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -220,7 +224,7 @@ fun MetricasScreen(
                                 style = MaterialTheme.typography.titleSmall
                             )
 
-                            val db = if (metrica.mediaDb > 0) "${metrica.mediaDb} dB • " else ""
+                            val db = if (metrica.mediaDb > 0) "${metrica.mediaDb} dB - " else ""
 
                             Text(
                                 text = "$db${formatarHoras(metrica.minutos)}",
@@ -246,6 +250,16 @@ fun MetricasScreen(
                     text = "Por matéria",
                     style = MaterialTheme.typography.titleMedium
                 )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (opcao in OrdemLocal.entries) {
+                        FilterChip(
+                            selected = ordemMateria == opcao,
+                            onClick = { ordemMateria = opcao },
+                            label = { Text(opcao.rotulo) }
+                        )
+                    }
+                }
 
                 for (materia in materias) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -275,7 +289,7 @@ fun MetricasScreen(
                         if (materia.mediaDb > 0) partes.add("${materia.mediaDb} dB")
 
                         Text(
-                            text = partes.joinToString(" • "),
+                            text = partes.joinToString(" - "),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
