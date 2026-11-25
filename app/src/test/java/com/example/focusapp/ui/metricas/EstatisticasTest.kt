@@ -145,4 +145,30 @@ class EstatisticasTest {
 
         assertNull(insightRuido(lista))
     }
+
+    @Test
+    fun ordenarMaterias_porTempoNotaERuido() {
+        val dia = hoje
+        val lista = listOf(
+            sessao(dia, minutos = 10, materia = "Redes", db = 60, nota = 2),
+            sessao(dia, minutos = 30, materia = "Banco", db = 50, nota = 0),
+            sessao(dia, minutos = 20, materia = "Mobile", db = 0, nota = 5)
+        )
+        val materias = metricasPorMateria(lista)
+
+        assertEquals(
+            listOf("Banco", "Mobile", "Redes"),
+            ordenarMaterias(materias, OrdemLocal.TEMPO).map { it.nome }
+        )
+        //sem nota vai pro fim
+        assertEquals(
+            listOf("Mobile", "Redes", "Banco"),
+            ordenarMaterias(materias, OrdemLocal.NOTA).map { it.nome }
+        )
+        //sem medição vai pro fim
+        assertEquals(
+            listOf("Banco", "Redes", "Mobile"),
+            ordenarMaterias(materias, OrdemLocal.RUIDO).map { it.nome }
+        )
+    }
 }

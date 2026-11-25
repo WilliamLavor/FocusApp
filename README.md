@@ -18,7 +18,7 @@ Equipe: William Lavor e Marina.
 - Alerta de fim: vibração e som quando o foco ou o descanso termina.
 - Histórico: busca por matéria, filtros por período e local, edição de matéria, notas e avaliação nos detalhes, e exclusão com confirmação.
 - Locais: cadastro, edição e exclusão dos locais de estudo, escolhidos à mão (sem GPS).
-- Métricas: janela de 7 dias, 30 dias ou tudo; gráfico dos últimos 7 dias; melhor local; ranking de locais e de matérias; relação entre ruído e nota.
+- Métricas: janela de 7 dias, 30 dias ou tudo; gráfico dos últimos 7 dias; melhor local; ranking de locais e de matérias, que podem ser ordenados por tempo, nota ou ruído; relação entre ruído e nota.
 - Meta diária e sequência de dias estudando, na tela principal.
 - Ajustes: tema claro ou escuro, minutos padrão, meta diária e opção de apagar o histórico.
 
