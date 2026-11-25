@@ -10,15 +10,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -121,10 +124,10 @@ fun NovaSessaoScreen(
                 onValueChange = { novo ->
                     if (novo.length <= 2 && novo.all { it.isDigit() }) sessoesTexto = novo
                 },
-                label = { Text("Quantas sessões você quer fazer?") },
+                label = { Text("Quantidade de sessões") },
                 isError = !sessoesValido,
                 supportingText = {
-                    Text("De $SESSOES_MIN a $SESSOES_MAX. A avaliação vem só no fim de todas.")
+                    Text("De $SESSOES_MIN a $SESSOES_MAX. Avalie ao finalizar.")
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
@@ -159,7 +162,7 @@ fun NovaSessaoScreen(
                     label = { Text("Descanso (min)") },
                     isError = !descansoValido,
                     supportingText = {
-                        Text("De $DESCANSO_MIN_MINUTOS a $DESCANSO_MAX_MINUTOS (0 = sem descanso)")
+                        Text("De $DESCANSO_MIN_MINUTOS a $DESCANSO_MAX_MINUTOS")
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
@@ -206,7 +209,12 @@ fun NovaSessaoScreen(
                 }
             }
 
-            TextButton(onClick = onGerenciarLocais) {
+            OutlinedButton(onClick = onGerenciarLocais) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
                 Text("Gerenciar locais")
             }
 

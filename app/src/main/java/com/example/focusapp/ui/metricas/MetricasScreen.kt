@@ -80,7 +80,7 @@ fun MetricasScreen(
         ) {
 
             Text(
-                text = "Onde você rende mais",
+                text = "Sobre o seu rendimento:",
                 style = MaterialTheme.typography.headlineSmall
             )
 
@@ -140,7 +140,7 @@ fun MetricasScreen(
                         partes.add(formatarHoras(melhor.minutos))
 
                         Text(
-                            text = partes.joinToString(" • "),
+                            text = partes.joinToString(" - "),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -220,7 +220,7 @@ fun MetricasScreen(
                                 style = MaterialTheme.typography.titleSmall
                             )
 
-                            val db = if (metrica.mediaDb > 0) "${metrica.mediaDb} dB • " else ""
+                            val db = if (metrica.mediaDb > 0) "${metrica.mediaDb} dB - " else ""
 
                             Text(
                                 text = "$db${formatarHoras(metrica.minutos)}",
@@ -275,7 +275,7 @@ fun MetricasScreen(
                         if (materia.mediaDb > 0) partes.add("${materia.mediaDb} dB")
 
                         Text(
-                            text = partes.joinToString(" • "),
+                            text = partes.joinToString(" - "),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }

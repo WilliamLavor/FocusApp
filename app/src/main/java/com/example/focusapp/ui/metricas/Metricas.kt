@@ -52,9 +52,9 @@ fun calcularMetricas(sessoes: List<FocusSession>, locais: List<Local>): List<Met
 }
 
 enum class OrdemLocal(val rotulo: String) {
-    TEMPO("Mais tempo"),
-    NOTA("Melhor nota"),
-    RUIDO("Mais quietos")
+    TEMPO("Tempo"),
+    NOTA("Nota"),
+    RUIDO("Mais quieto")
 }
 
 fun ordenar(metricas: List<MetricaLocal>, ordem: OrdemLocal): List<MetricaLocal> =

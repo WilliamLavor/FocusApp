@@ -1,11 +1,13 @@
 package com.example.focusapp.ui.focus
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,9 +23,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.focusapp.ui.ruido.PainelRuido
@@ -102,7 +106,7 @@ fun FocusScreen(
         !temPermissao -> "Microfone sem permissão"
         !viewModel.focando -> "O ruído será medido durante o foco"
         viewModel.pausado -> "Medição de ruído pausada"
-        else -> "Ruído Atual: $ruidoDb dB ($descricaoRuido)"
+        else -> "Ruído: $ruidoDb dB ($descricaoRuido)"
     }
 
     // o anel mostra quanto falta do foco (ou do descanso)
@@ -242,7 +246,7 @@ fun FocusScreen(
 
                             Text(
                                 if (viewModel.estudoAtivo) {
-                                    "Quando acabar, a próxima sessão começa sozinha se o celular estiver virado."
+                                    "A próxima sessão começa sozinha se o celular estiver virado."
                                 } else {
                                     "Quando acabar, você avalia o estudo."
                                 }
@@ -322,10 +326,27 @@ private fun TelaFocoAtiva(
     val corTexto = Color(0xFFF2E6D4)
     val corDestaque = Color(0xFFF0B866)
 
+    //esta tela é sempre escura: ícones claros na barra de cima e na de baixo
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        val janela = (view.context as Activity).window
+        val controle = WindowCompat.getInsetsController(janela, view)
+        val statusAntes = controle.isAppearanceLightStatusBars
+        val navegacaoAntes = controle.isAppearanceLightNavigationBars
+        controle.isAppearanceLightStatusBars = false
+        controle.isAppearanceLightNavigationBars = false
+
+        onDispose {
+            controle.isAppearanceLightStatusBars = statusAntes
+            controle.isAppearanceLightNavigationBars = navegacaoAntes
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(corFundo)
+            .systemBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -375,9 +396,11 @@ private fun TelaFocoAtiva(
             text = if (pausado) {
                 "Vire o celular para baixo por 2 segundos para continuar."
             } else {
-                "Foco ativo. Para pausar, desvire o celular. Não saia do aplicativo!"
+                "Foco ativo. Para pausar, desvire o celular."
             },
-            color = corTexto
+            color = corTexto,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
 
         Text(
@@ -396,9 +419,10 @@ private fun TelaFocoAtiva(
                 Text("Retomar")
             }
 
-            TextButton(
+            OutlinedButton(
                 onClick = onEncerrar,
-                colors = ButtonDefaults.textButtonColors(contentColor = corTexto)
+                border = BorderStroke(1.dp, corTexto.copy(alpha = 0.6f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = corTexto)
             ) {
                 Text("Encerrar sessão")
             }
