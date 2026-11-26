@@ -17,11 +17,15 @@ class AlertaFim(context: Context) {
     private var toque: Ringtone? = null
 
     fun tocar() {
-        vibrar()
+        vibrar(PADRAO_FIM)
         tocarSom()
     }
 
-    private fun vibrar() {
+    fun avisarInicio() {
+        vibrar(PADRAO_INICIO)
+    }
+
+    private fun vibrar(padrao: LongArray) {
         try {
             val vibrador: Vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val gerenciador =
@@ -34,8 +38,6 @@ class AlertaFim(context: Context) {
 
             if (!vibrador.hasVibrator()) return
 
-            // 3 vibradas curtas
-            val padrao = longArrayOf(0, 400, 200, 400, 200, 400)
             vibrador.vibrate(VibrationEffect.createWaveform(padrao, -1))
         } catch (e: Exception) {
             //sem vibração, segue sem
@@ -51,5 +53,10 @@ class AlertaFim(context: Context) {
         } catch (e: Exception) {
             // sem som, segue sem
         }
+    }
+
+    companion object {
+        private val PADRAO_FIM = longArrayOf(0, 400, 200, 400, 200, 400)
+        private val PADRAO_INICIO = longArrayOf(0, 150)
     }
 }

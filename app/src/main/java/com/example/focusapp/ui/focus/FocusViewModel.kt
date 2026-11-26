@@ -121,6 +121,7 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
         // virou: inicia ou retoma. desvirou: pausa
         sensorVirado.aoMudar = { virado ->
             if (virado) {
+                if (!emDescanso) alerta.avisarInicio()
                 if (focando) retomar() else iniciarFoco()
             } else {
                 pausar()
